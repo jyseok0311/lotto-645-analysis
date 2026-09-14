@@ -37,9 +37,10 @@
 ## 저장소 구조
 
 ```
-├── index.html                  랜딩 페이지
+├── index.html                  랜딩 페이지 (개요)
 ├── report/index.html           분석 리포트 (7개 섹션, 인터랙티브 차트)
 ├── picker/index.html           3D 추첨기 웹앱
+├── assets/nav.css              사이트 공통 메뉴 스타일 (원본)
 ├── data/
 │   ├── lotto_all.csv           1~1241회차 전수 (엑셀용, UTF-8 BOM)
 │   ├── lotto_all.json          동일 데이터 JSON
@@ -53,6 +54,8 @@
 │   └── draw-procedure.pdf/png  동행복권 공식 추첨방법 자료
 └── scripts/
     ├── update_lotto.mjs        주간 데이터 갱신
+    ├── inject_nav.mjs          세 페이지에 공통 메뉴 주입 (멱등)
+    ├── tol_power.mjs           볼 허용오차 편향의 검출력 계산
     ├── stats.mjs               통계 유틸 (카이제곱, 정규, 조합)
     ├── sim3d.mjs               3D 강체 시뮬레이터 (정밀 설정)
     ├── sim_venus.mjs           비너스 추첨기 사양 시뮬레이터
@@ -71,6 +74,14 @@ node scripts/update_lotto.mjs
 ```
 
 새 회차만 받아 `data/` 에 추가합니다. 전체를 다시 받으려면 `--full`.
+
+### 메뉴 갱신
+
+```bash
+node scripts/inject_nav.mjs
+```
+
+`assets/nav.css` 를 고치거나 페이지를 다시 생성한 뒤 실행하면, 세 페이지 상단 메뉴가 일괄 갱신됩니다. 여러 번 실행해도 중복되지 않습니다.
 
 ### 시뮬레이터 검증
 
