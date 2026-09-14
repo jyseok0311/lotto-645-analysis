@@ -1,0 +1,14 @@
+import {runParallel} from './sim_run_lite.mjs';
+import {chi2p, fmt, pstr, normP2} from './stats.mjs';
+const N=Number(process.argv[2]||20000);
+const t0=Date.now();
+const {ok,fail,f}=await runParallel(N,0,777);
+const E=ok*6/45; let x2=0; for(const v of f) x2+=(v-E)**2/E;
+console.log(`영가설 검증: 질량 동일, ${ok.toLocaleString()}회차 (미완료 ${fail}, ${((Date.now()-t0)/1000).toFixed(0)}초)`);
+console.log(`  번호당 기대 ${fmt(E,1)}  실제 ${Math.min(...f)}~${Math.max(...f)}`);
+console.log(`  균등성 χ² = ${fmt(x2,2)}, df=44, p = ${pstr(chi2p(x2,44))}`);
+const idx=[...Array(45)].map((_,i)=>i+1);
+const mx=23,my=f.reduce((a,b)=>a+b,0)/45;
+const r=idx.reduce((a,x,i)=>a+(x-mx)*(f[i]-my),0)/Math.sqrt(idx.reduce((a,x)=>a+(x-mx)**2,0)*f.reduce((a,y)=>a+(y-my)**2,0));
+console.log(`  번호값 추세 r = ${fmt(r,3)}, p = ${pstr(normP2(r*Math.sqrt(43/(1-r*r))))}`);
+console.log(`  1번 대비 45번 빈도비 ${fmt(f[44]/f[0],3)}`);

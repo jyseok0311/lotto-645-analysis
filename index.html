@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>로또 6/45 전수 분석</title>
+<meta name="description" content="동행복권 로또 6/45 1~1241회차 전수 데이터 분석과, 실제 비너스 추첨기 사양을 반영한 3D 추첨 시뮬레이터.">
+<meta name="color-scheme" content="light dark">
+<meta property="og:title" content="로또 6/45 전수 분석">
+<meta property="og:description" content="24년치 1,241회차를 무작위성 검정 10종에 통과시켰다. 번호 쪽에서는 아무것도 나오지 않았다.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@400;500;700&family=IBM+Plex+Sans+KR:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  color-scheme: light;
+  --paper:#E7EBEF; --surface:#FDFDFE; --surface-2:#F1F4F7;
+  --ink:#10161F; --ink-2:#3D4855; --ink-3:#6A7481; --rule:#C9D1DA; --rule-soft:#DDE3EA;
+  --cool:#2a78d6; --warm:#e34948;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --paper:#0D1117; --surface:#161B22; --surface-2:#1C222B;
+    --ink:#E7EDF3; --ink-2:#AAB6C3; --ink-3:#7B8797; --rule:#2C3440; --rule-soft:#232A34;
+    --cool:#3987e5; --warm:#e66767;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --paper:#0D1117; --surface:#161B22; --surface-2:#1C222B;
+  --ink:#E7EDF3; --ink-2:#AAB6C3; --ink-3:#7B8797; --rule:#2C3440; --rule-soft:#232A34;
+  --cool:#3987e5; --warm:#e66767;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font-family:"IBM Plex Sans KR",-apple-system,"Malgun Gothic",sans-serif;
+  font-weight:300; line-height:1.68; -webkit-font-smoothing:antialiased}
+.wrap{max-width:940px; margin:0 auto; padding:0 22px 80px}
+h1,h2{font-family:Hahmlet,"IBM Plex Sans KR",serif; font-weight:700; margin:0; text-wrap:balance}
+a{color:inherit}
+header{padding:56px 0 26px; border-bottom:2px solid var(--ink)}
+.eyebrow{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.15em;
+  text-transform:uppercase; color:var(--ink-3); margin-bottom:16px}
+h1{font-size:clamp(30px,5.4vw,50px); letter-spacing:-.02em; line-height:1.24}
+h1 .thin{font-weight:400; color:var(--ink-2)}
+.lede{margin-top:18px; max-width:60ch; font-size:16.5px; color:var(--ink-2)}
+
+.cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:2px;
+  background:var(--rule); border:1px solid var(--rule); margin-top:34px}
+.card{background:var(--surface); padding:26px 24px; display:flex; flex-direction:column; gap:11px;
+  text-decoration:none; transition:background .14s}
+.card:hover{background:var(--surface-2)}
+.ctag{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--ink-3)}
+.ctitle{font-family:Hahmlet,serif; font-weight:700; font-size:23px; line-height:1.3}
+.card.a .ctitle{color:var(--cool)}
+.card.b .ctitle{color:var(--warm)}
+.cdesc{font-size:14px; color:var(--ink-2)}
+.cgo{margin-top:auto; padding-top:12px; font-family:"IBM Plex Mono",monospace;
+  font-size:12.5px; color:var(--ink-3); border-top:1px dashed var(--rule)}
+
+section{margin-top:52px}
+h2{font-size:21px; border-bottom:1px solid var(--ink); padding-bottom:9px}
+.p{font-size:15px; color:var(--ink-2); max-width:66ch; margin:16px 0 0}
+.p strong{color:var(--ink); font-weight:600}
+.stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:2px;
+  background:var(--rule); border:1px solid var(--rule); margin-top:22px}
+.st{background:var(--surface); padding:18px 18px}
+.st .k{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink-3)}
+.st .v{font-family:Hahmlet,serif; font-size:26px; font-weight:700; margin:6px 0 4px;
+  font-variant-numeric:tabular-nums}
+.st .d{font-size:12.5px; color:var(--ink-2)}
+table{border-collapse:collapse; width:100%; font-size:13.5px; margin-top:18px}
+th{text-align:left; font-weight:500; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--ink-3); padding:0 12px 8px 0; border-bottom:1px solid var(--rule); white-space:nowrap}
+td{padding:8px 12px 8px 0; border-bottom:1px solid var(--rule-soft); vertical-align:baseline}
+td.n{font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; color:var(--ink-2); white-space:nowrap}
+tr:last-child td{border-bottom:none}
+.scroller{overflow-x:auto}
+.warn{border-left:3px solid var(--warm); background:var(--surface); padding:16px 20px;
+  margin-top:22px; font-size:14px; color:var(--ink-2)}
+.warn b{color:var(--ink); font-weight:600}
+footer{margin-top:60px; padding-top:20px; border-top:2px solid var(--ink);
+  font-size:12.5px; color:var(--ink-3)}
+footer a{color:var(--cool)}
+footer dl{display:grid; grid-template-columns:max-content 1fr; gap:6px 18px; margin:12px 0 0}
+footer dt{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.1em;
+  text-transform:uppercase; padding-top:2px}
+footer dd{margin:0; color:var(--ink-2)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">동행복권 로또 6/45 · 1~1,241회차 · 2002.12.07–2026.09.12</div>
+  <h1>추첨은 무작위였다.<br><span class="thin">무작위가 아닌 건 사람이었다.</span></h1>
+  <p class="lede">24년치 전 회차를 무작위성 검정 10종에 통과시켰다. 번호 쪽에서는 아무것도 나오지 않았다. 대신 신호는 전혀 다른 곳 &mdash; 사람들이 번호를 고르는 방식 &mdash; 에서 뚜렷하게 잡혔다.</p>
+
+  <div class="cards">
+    <a class="card a" href="report/">
+      <span class="ctag">읽기</span>
+      <span class="ctitle">전수 분석 리포트</span>
+      <span class="cdesc">무작위성 검정 10종, 구매자 선호도 지도, 조작 의혹의 물리 가설 검정, 무더기 1등의 원인, 3D 시뮬레이션 검출력 분석까지 7개 섹션.</span>
+      <span class="cgo">report/ →</span>
+    </a>
+    <a class="card b" href="picker/">
+      <span class="ctag">사용</span>
+      <span class="ctitle">비인기 조합 추첨기</span>
+      <span class="cdesc">실제 비너스 추첨기 사양(지름 50cm 구형 챔버, 폴리우레탄 4g 볼, 회전링 4구 추출)을 반영한 3D 시뮬레이션으로 매주 5게임을 뽑는다.</span>
+      <span class="cgo">picker/ →</span>
+    </a>
+  </div>
+</header>
+
+<section>
+  <h2>무엇을 확인했나</h2>
+  <div class="stats">
+    <div class="st"><div class="k">무작위성 검정</div><div class="v">10 / 10</div><div class="d">전부 통과. 최소 p = 0.287</div></div>
+    <div class="st"><div class="k">번호 크기 × 선호도</div><div class="v">−0.510</div><div class="d">작은 번호일수록 많이 고른다 (p = 1.0e−4)</div></div>
+    <div class="st"><div class="k">기대 당첨금 격차</div><div class="v">21%</div><div class="d">인기 유형과 한산한 유형 사이</div></div>
+    <div class="st"><div class="k">검출 한계</div><div class="v">편향 15%</div><div class="d">그 아래는 24년치로도 판정 불가</div></div>
+  </div>
+
+  <p class="p"><strong>추첨 자체에는 패턴이 없다.</strong> 번호별 균등성, 홀짝 구성, 합계 분포, 연속번호, 회차 간 독립성, 시대별 변화, 주기성, 재출현 간격, 조합 중복 &mdash; 열 가지 검정이 모두 무작위 가설과 일치했다. 최다 34번(186회)과 최소 9번(136회)의 차이도 다중비교를 보정하면 p = 0.92다.</p>
+
+  <p class="p"><strong>그런데 1등 당첨금은 영향을 받는다.</strong> 당첨금은 정해진 몫을 당첨자끼리 나눈 값이라, 내가 고른 조합을 몇 명이 같이 골랐는지가 금액을 정한다. 1등 당첨자 수의 분산/평균 비는 1.90으로, 순수 무작위(1.00)와 뚜렷이 다르다.</p>
+
+  <div class="scroller"><table>
+    <thead><tr><th>조합 특성</th><th>사람 선호도</th><th>p값</th></tr></thead>
+    <tbody>
+      <tr><td>번호 합계 110 이하</td><td class="n">1.092</td><td class="n">6.2e−5</td></tr>
+      <tr><td>번호 합계 171 이상</td><td class="n">0.894</td><td class="n">1.9e−5</td></tr>
+      <tr><td>최대−최소 폭 20 이하</td><td class="n">1.131</td><td class="n">0.0011</td></tr>
+      <tr><td>연속번호 포함</td><td class="n">0.959</td><td class="n">0.0021</td></tr>
+      <tr><td>용지 인접칸 3쌍 이상 (도형 마킹)</td><td class="n">1.096</td><td class="n">0.0074</td></tr>
+    </tbody>
+  </table></div>
+  <p class="p">선호도 1.00이 무작위 선택과 같은 수준이다. 1보다 크면 그 형태를 고르는 사람이 많다는 뜻이고, 당첨 시 당첨금을 더 많이 나눠야 한다.</p>
+</section>
+
+<section>
+  <h2>1등이 무더기로 나오는 이유</h2>
+  <p class="p">1등이 30명을 넘는 회차는 순수 무작위 기대치의 <strong>119배</strong>로 나타난다. 원인은 추첨기가 아니라 용지에 있다. 1152회 <span class="n">30·31·32 / 35·36·37</span>처럼 용지 위에서 덩어리 도형이 되는 조합은 손으로 모양을 그려 찍은 사람이 많아, 당첨되면 수십 명이 동시에 나온다.</p>
+  <p class="p">이 효과는 실제 용지 배열인 <strong>7칸 격자에서만</strong> 통계적으로 잡히고 5·6·9칸에서는 사라진다. 숫자가 아니라 종이 위 공간 배치에서 온다는 방증이다.</p>
+</section>
+
+<section>
+  <h2>추첨기와 볼 사양</h2>
+  <p class="p">동행복권이 공개한 「로또645_추첨장비」 자료 기준이다. 프랑스 AKANIS TECHNOLOGIES의 <strong>비너스 추첨 시스템</strong>을 쓴다.</p>
+  <div class="scroller"><table>
+    <thead><tr><th>항목</th><th>사양</th></tr></thead>
+    <tbody>
+      <tr><td>혼합 챔버</td><td class="n">지름 50cm 구형, 플렉시유리</td></tr>
+      <tr><td>혼합 방식</td><td class="n">공기혼합방식 — 터빈 송풍</td></tr>
+      <tr><td>추출 방식</td><td class="n">드럼링 회전추출, 추출구 4개</td></tr>
+      <tr><td>볼 재질</td><td class="n">폴리우레탄</td></tr>
+      <tr><td>볼 무게</td><td class="n">약 4g ± 5%</td></tr>
+      <tr><td>볼 지름</td><td class="n">44.5mm ± 2.5%</td></tr>
+    </tbody>
+  </table></div>
+  <p class="p">볼 무게 허용오차가 <strong>±5%</strong>라는 점이 중요하다. 가장 무거운 볼과 가벼운 볼은 400mg(10%)까지 차이날 수 있고, 이는 규격 위반이 아니라 규격 안이다. 시뮬레이션으로 측정한 질량–확률 전달함수를 적용하면 선택확률 편향 약 7.3%에 해당하는데, 이 크기를 80% 확률로 검출하려면 3,160회차(61년)가 필요하다. <strong>24년치로는 절반 이상 놓친다.</strong></p>
+</section>
+
+<div class="warn">
+  <b>당첨 확률을 높이는 방법은 없습니다.</b> 모든 조합이 8,145,060분의 1로 동일하고, 이 분석은 그것을 열 가지 방법으로 확인해 줍니다. 바뀌는 건 당첨됐을 때의 기대 분배금뿐이며, 당첨금 지급률이 판매액의 50%로 고정돼 있어 기대수익률은 어떤 조합에서도 마이너스입니다. 여가 지출 범위에서만 이용하세요. 도박 문제 상담은 국번 없이 <b>1336</b>(한국도박문제예방치유원).
+</div>
+
+<footer>
+  <div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase">데이터 및 방법</div>
+  <dl>
+    <dt>출처</dt><dd>동행복권 공식 추첨결과 API (<span class="n">dhlottery.co.kr/lt645</span>) — 1~1,241회차 전수, 누락 0건</dd>
+    <dt>장비</dt><dd>동행복권 「로또645_추첨장비」·「로또645_추첨방법」 공개 자료</dd>
+    <dt>데이터</dt><dd><a href="data/lotto_all.csv">lotto_all.csv</a> · <a href="data/lotto_all.json">lotto_all.json</a> · <a href="data/number_stats.csv">number_stats.csv</a></dd>
+    <dt>문서</dt><dd><a href="docs/analysis-report.md">분석 보고서</a> · <a href="docs/simulation-report.md">시뮬레이션 보고서</a> · <a href="docs/ball-tolerance-analysis.txt">허용오차 분석</a></dd>
+    <dt>갱신</dt><dd><span class="n">node scripts/update_lotto.mjs</span> — 새 회차만 받아 데이터에 추가</dd>
+  </dl>
+</footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="실제 비너스 추첨기 사양(구형 챔버·폴리우레탄 4g 볼·회전링 4구)을 반영한 3D 시뮬레이션으로 매주 5게임을 뽑는 추첨기.">
+<meta name="color-scheme" content="light dark">
+<meta property="og:title" content="로또 비인기 조합 추첨기">
+<meta property="og:description" content="실제 비너스 추첨기 사양(구형 챔버·폴리우레탄 4g 볼·회전링 4구)을 반영한 3D 시뮬레이션으로 매주 5게임을 뽑는 추첨기.">
+<meta property="og:type" content="website">
+<style>
+  html{color-scheme:light dark}
+  body{margin:0;font:14px/1.5 system-ui,sans-serif}
+  img{max-width:100%}
+  [hidden]{display:none!important}
+</style>
+<title>로또 비인기 조합 추첨기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@400;500;700&family=IBM+Plex+Sans+KR:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  color-scheme: light;
+  --paper:#E7EBEF; --surface:#FDFDFE; --surface-2:#F1F4F7; --sunken:#DCE2E8;
+  --ink:#10161F; --ink-2:#3D4855; --ink-3:#6A7481; --rule:#C9D1DA; --rule-soft:#DDE3EA;
+  --cool:#2a78d6; --warm:#e34948; --ok:#1b6b4a;
+  --glass:rgba(16,22,31,.10); --stage:#DFE5EB; --stage-2:#EFF3F6;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --paper:#0D1117; --surface:#161B22; --surface-2:#1C222B; --sunken:#10151C;
+    --ink:#E7EDF3; --ink-2:#AAB6C3; --ink-3:#7B8797; --rule:#2C3440; --rule-soft:#232A34;
+    --cool:#3987e5; --warm:#e66767; --ok:#4cb98a;
+    --glass:rgba(231,237,243,.13); --stage:#11161D; --stage-2:#1A212A;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --paper:#0D1117; --surface:#161B22; --surface-2:#1C222B; --sunken:#10151C;
+  --ink:#E7EDF3; --ink-2:#AAB6C3; --ink-3:#7B8797; --rule:#2C3440; --rule-soft:#232A34;
+  --cool:#3987e5; --warm:#e66767; --ok:#4cb98a;
+  --glass:rgba(231,237,243,.13); --stage:#11161D; --stage-2:#1A212A;
+}
+*{box-sizing:border-box}
+body{background:var(--paper); color:var(--ink);
+  font-family:"IBM Plex Sans KR",-apple-system,"Malgun Gothic",sans-serif;
+  font-weight:300; line-height:1.65; -webkit-font-smoothing:antialiased}
+.wrap{max-width:1000px; margin:0 auto; padding:0 20px 80px}
+h1,h2{font-family:Hahmlet,"IBM Plex Sans KR",serif; font-weight:700; margin:0; text-wrap:balance}
+.mono{font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums}
+
+header{padding:40px 0 22px; border-bottom:2px solid var(--ink); margin-bottom:26px}
+.eyebrow{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.15em;
+  text-transform:uppercase; color:var(--ink-3); margin-bottom:14px}
+h1{font-size:clamp(27px,4.6vw,40px); letter-spacing:-.02em}
+.sub{margin-top:12px; color:var(--ink-2); font-size:15px; max-width:62ch}
+
+.roundbar{display:flex; flex-wrap:wrap; gap:2px; margin-top:24px; background:var(--rule);
+  border:1px solid var(--rule)}
+.rb{background:var(--surface); padding:14px 18px; flex:1 1 140px}
+.rb .k{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink-3)}
+.rb .v{font-family:Hahmlet,serif; font-size:22px; font-weight:700; margin-top:3px;
+  font-variant-numeric:tabular-nums}
+
+.stage{position:relative; background:linear-gradient(180deg,var(--stage-2),var(--stage));
+  border:1px solid var(--rule); overflow:hidden}
+canvas{display:block; width:100%; height:auto}
+.stagebar{display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between;
+  padding:14px 16px; border-top:1px solid var(--rule); background:var(--surface)}
+.status{font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--ink-3)}
+.status b{color:var(--ink-2); font-weight:500}
+button{font-family:"IBM Plex Sans KR",sans-serif; font-size:14px; font-weight:500;
+  padding:10px 20px; border-radius:4px; border:1px solid var(--ink); background:var(--ink);
+  color:var(--paper); cursor:pointer}
+button:hover:not(:disabled){opacity:.87}
+button:disabled{opacity:.42; cursor:default}
+button.ghost{background:transparent; color:var(--ink); border-color:var(--rule)}
+button:focus-visible{outline:2px solid var(--cool); outline-offset:2px}
+.bar{height:3px; background:var(--sunken); overflow:hidden}
+.bar i{display:block; height:100%; width:0; background:var(--cool); transition:width .18s}
+
+.games{display:grid; grid-template-columns:repeat(auto-fit,minmax(288px,1fr)); gap:2px;
+  background:var(--rule); border:1px solid var(--rule); margin-top:26px}
+.game{background:var(--surface); padding:18px 18px 16px; display:flex; flex-direction:column; gap:12px}
+.ghead{display:flex; align-items:baseline; justify-content:space-between; gap:10px}
+.gname{font-family:Hahmlet,serif; font-weight:700; font-size:16px}
+.gprice{font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--ink-3)}
+.balls{display:flex; gap:7px; flex-wrap:wrap}
+.ball{width:38px; height:38px; border-radius:50%; display:grid; place-items:center;
+  font-family:"IBM Plex Mono",monospace; font-size:14px; font-weight:500; color:#15181c;
+  font-variant-numeric:tabular-nums; box-shadow:inset 0 -3px 6px rgba(0,0,0,.16)}
+.ball.skel{background:var(--sunken); box-shadow:none}
+.chips{display:flex; flex-wrap:wrap; gap:6px}
+.chip{font-family:"IBM Plex Mono",monospace; font-size:11px; padding:3px 8px; border-radius:3px;
+  background:var(--surface-2); color:var(--ink-2); border:1px solid var(--rule-soft)}
+.chip.on{background:var(--cool); color:#fff; border-color:var(--cool)}
+
+section{margin-top:42px}
+.shead{display:flex; align-items:baseline; gap:12px; border-bottom:1px solid var(--ink);
+  padding-bottom:9px; margin-bottom:18px}
+h2{font-size:19px}
+.snum{font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--ink-3)}
+.panel{background:var(--surface); border:1px solid var(--rule-soft); padding:18px 20px}
+table{border-collapse:collapse; width:100%; font-size:13.5px}
+th{text-align:left; font-weight:500; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--ink-3); padding:0 12px 8px 0; border-bottom:1px solid var(--rule); white-space:nowrap}
+td{padding:8px 12px 8px 0; border-bottom:1px solid var(--rule-soft); vertical-align:baseline}
+td.n{font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; color:var(--ink-2)}
+tr:last-child td{border-bottom:none}
+.note{font-size:13.5px; color:var(--ink-2); margin:14px 0 0}
+.note b{color:var(--ink); font-weight:600}
+.warn{border-left:3px solid var(--warm); background:var(--surface); padding:16px 20px;
+  margin-top:16px; font-size:13.5px; color:var(--ink-2)}
+.warn b{color:var(--ink); font-weight:600}
+.scroller{overflow-x:auto}
+.hist{font-family:"IBM Plex Mono",monospace; font-size:12.5px}
+footer{margin-top:56px; padding-top:18px; border-top:2px solid var(--ink);
+  font-size:12.5px; color:var(--ink-3)}
+footer a{color:var(--cool)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="eyebrow">동행복권 로또 6/45 · 1,241회차 분석 기반</div>
+  <h1>비인기 조합 추첨기</h1>
+  <p class="sub">당첨 확률은 어떤 조합이든 8,145,060분의 1로 같습니다. 이 추첨기가 바꾸는 건 확률이 아니라 <strong>당첨됐을 때 몇 명과 나눠 갖는가</strong>입니다. 24년치 데이터에서 사람들이 잘 고르지 않는 것으로 확인된 조합 형태만 골라 뽑습니다.</p>
+  <div class="roundbar">
+    <div class="rb"><div class="k">다음 추첨</div><div class="v mono" id="rRound">—</div></div>
+    <div class="rb"><div class="k">추첨일</div><div class="v mono" id="rDate">—</div></div>
+    <div class="rb"><div class="k">구매 금액</div><div class="v mono">10,000원</div></div>
+    <div class="rb"><div class="k">게임 수</div><div class="v mono">5게임</div></div>
+  </div>
+</header>
+
+<div class="stage">
+  <canvas id="cv" width="1000" height="520"></canvas>
+  <div class="bar"><i id="prog"></i></div>
+  <div class="stagebar">
+    <div class="status" id="status">추첨기 준비 중…</div>
+    <div style="display:flex; gap:9px">
+      <button class="ghost" id="btnSkip" disabled>건너뛰기</button>
+      <button id="btnDraw" disabled>다시 추첨</button>
+    </div>
+  </div>
+</div>
+
+<div class="games" id="games"></div>
+
+<section>
+  <div class="shead"><span class="snum">조건</span><h2>무엇을 기준으로 거르는가</h2></div>
+  <div class="panel">
+    <div class="scroller"><table>
+      <thead><tr><th>조건</th><th>근거 (1,241회차 선호도)</th><th>뜻</th></tr></thead>
+      <tbody>
+        <tr><td>6개 합계 165 이상</td><td class="n">합계 171+ → 0.894</td><td>합계가 낮은 조합에 사람이 몰린다</td></tr>
+        <tr><td>32번 이상 2개 이상</td><td class="n">번호크기 상관 r = −0.510</td><td>달력에 없는 번호는 덜 선택된다</td></tr>
+        <tr><td>최대−최소 폭 33 이상</td><td class="n">폭 20 이하 → 1.131</td><td>좁게 몰린 조합이 인기다</td></tr>
+        <tr><td>용지 인접칸 1~2쌍</td><td class="n">인접 0개 → 1.065 / 3개+ → 1.096</td><td>흩뿌리지도, 도형을 그리지도 않는 중간지대</td></tr>
+      </tbody>
+    </table></div>
+    <p class="note">선호도 1.00이 무작위 선택과 같은 수준입니다. 1보다 크면 그 형태를 고르는 사람이 많다는 뜻이고, 당첨 시 당첨금을 더 많이 나눠야 합니다. 네 조건을 모두 만족하는 조합은 8,145,060개 중 <b>448,112개(5.50%)</b>입니다 — 후보가 44만 개나 되므로 특정 번호로 쏠리지 않습니다.</p>
+    <p class="note">실제 검증: 이 조건에 부합했던 과거 53개 회차의 1등 당첨자 수는 무작위 기대치의 <b>0.861배</b>였습니다(95% 신뢰구간 0.78~0.95, p = 0.0032). 같은 1등이라도 경쟁자가 약 14% 적었다는 뜻입니다.</p>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><span class="snum">추첨 방식</span><h2>실제 추첨기 사양을 그대로 옮겼다</h2></div>
+  <div class="panel">
+    <p class="note" style="margin-top:0">위 화면은 장식이 아니라 실제로 돌아가는 강체 시뮬레이션입니다. 동행복권이 공개한 「로또645_추첨장비」 자료의 실제 수치를 그대로 적용했습니다.</p>
+    <div class="scroller"><table style="margin-top:14px">
+      <thead><tr><th>항목</th><th>실제 비너스 추첨 시스템</th><th>시뮬레이션 반영</th></tr></thead>
+      <tbody>
+        <tr><td>제조사</td><td class="n">AKANIS TECHNOLOGIES (프랑스)</td><td class="n">—</td></tr>
+        <tr><td>혼합 챔버</td><td class="n">지름 50cm 구형, 플렉시유리</td><td class="n">반지름 0.25m 구형 경계</td></tr>
+        <tr><td>추첨볼 재질</td><td class="n">폴리우레탄</td><td class="n">반발계수 0.55로 반영</td></tr>
+        <tr><td>추첨볼 무게</td><td class="n">약 4g ± 5%</td><td class="n">4.0g (질량 응답 a = F/m)</td></tr>
+        <tr><td>추첨볼 지름</td><td class="n">44.5mm ± 2.5%</td><td class="n">44.5mm</td></tr>
+        <tr><td>혼합 방식</td><td class="n">터빈 송풍 (공기혼합방식)</td><td class="n">중앙 상승·벽면 하강 + 난류</td></tr>
+        <tr><td>추출 방식</td><td class="n">드럼 상단 회전링, 추출구 4개</td><td class="n">회전 포획구 4개 (붉은 원)</td></tr>
+        <tr><td>볼 색상</td><td class="n">노랑 1–10 · 파랑 11–20 · 빨강 21–30 · 회색 31–40 · 초록 41–45</td><td class="n">동일</td></tr>
+      </tbody>
+    </table></div>
+    <p class="note">화면의 공 위치는 매 프레임 계산된 3차원 좌표를 그대로 투영한 것이고, 붉은 원 4개가 회전하는 추출구입니다. 공이 추출구에 들어오면 뽑힙니다.</p>
+    <p class="note"><b>조건에 맞을 때까지 다시 돌립니다.</b> 한 번 돌려 나온 결과가 위 네 조건을 만족하지 못하면 버리고 다시 돌립니다(기각 표본추출). 채택률이 5.50%이므로 평균 18번쯤 돌려야 한 게임이 나오고, 실제 시도 횟수는 화면에 표시됩니다. 이 방식은 조건을 만족하는 44만 개 조합에서 <b>균등하게</b> 하나를 뽑는 것과 수학적으로 동일합니다.</p>
+    <p class="note"><b>다만 공기역학까지 같지는 않습니다.</b> 챔버 형상·볼 사양·추출 구조는 공식 수치를 따랐지만, 터빈의 송풍 압력과 유동장은 공개돼 있지 않아 <b>중앙 상승·벽면 하강 + 난류</b>라는 추상 모델로 대체했습니다. 추첨 간격도 실제는 볼 하나당 4~5초지만 여기서는 압축했습니다. 이 시뮬레이션이 보장하는 것은 결과가 균등하다는 것이지, 실물과 같은 궤적이 아닙니다.</p><p class="note"><b>왜 짧게 돌려도 공정한가.</b> 45개 공은 질량·크기가 모두 같고, 시작할 때 번호와 자리를 무작위로 배정합니다. 그래서 번호를 바꿔 끼워도 통계적으로 동일한 과정이 되고(교환가능성), 혼합 시간과 무관하게 모든 번호가 같은 확률을 갖습니다. 충돌 계산도 처리 순서가 결과에 개입하지 않는 방식을 씁니다. 실제로 이 설정으로 <b>116,784회차</b>를 돌려 확인했습니다 — 균등성 카이제곱 p = 0.926, 번호 크기 추세 r = 0.064(p = 0.68).</p>
+  </div>
+  <div class="warn">
+    <b>확률은 바뀌지 않습니다.</b> 이 추첨기로 뽑든 자동으로 사든 1등 확률은 8,145,060분의 1로 동일합니다. 당첨금 지급률이 판매액의 50%로 고정돼 있어 기대수익률은 어떤 조합에서도 마이너스입니다. 여가 지출 범위에서만 이용하세요. 도박 문제 상담은 국번 없이 <b>1336</b>(한국도박문제예방치유원).
+  </div>
+</section>
+
+<section>
+  <div class="shead"><span class="snum">기록</span><h2>지난 회차 추천 번호</h2></div>
+  <div class="panel">
+    <div id="histBox" class="hist" style="color:var(--ink-3)">불러오는 중…</div>
+  </div>
+</section>
+
+<footer>
+  분석 근거: <a id="reportLink" href="../report/">로또 1241회 전수 분석 리포트</a> ·
+  데이터 출처: 동행복권 공식 추첨결과 API (1~1,241회차, 누락 0건) · 장비 사양: 동행복권 「로또645_추첨장비」·「로또645_추첨방법」
+</footer>
+</div>
+
+<script>
+/* ═══════════ 비너스 추첨 시스템 사양 기반 시뮬레이터 ═══════════
+   · 혼합 챔버: 지름 50cm 구형(플렉시유리)           → Rs = 0.25 m
+   · 추첨볼: 폴리우레탄 4g ±5%, 지름 44.5mm ±2.5%    → r = 0.02225 m
+   · 혼합: 터빈 송풍(공기혼합방식) — 추상 난류 모델
+   · 추출: 드럼 상단 회전링의 4개 추출구(Drum Catch)
+   출처: 동행복권 「로또645_추첨장비」 공식 자료                        */
+const CFG = { Rs:.25, r:.02225, m0:.004,
+  g:-9.81, dt:1/400, rest:.55, wallRest:.5, damp:.9992,
+  A:60, T:45, swirl:6, ringPhi:.95, ringW:5.2, catchR:.040, nPorts:4,
+  mixSteps:260, maxSteps:2600 };
+const N = 45;
+const ZRING = CFG.Rs*Math.cos(CFG.ringPhi), RRING = CFG.Rs*Math.sin(CFG.ringPhi);
+
+function rng(seed){ let a=seed>>>0||1,b=362436069,c=521288629,d=88675123;
+  return function(){ const t=a^(a<<11); a=b;b=c;c=d;
+    d=(d^(d>>>19))^(t^(t>>>8)); return (d>>>0)/4294967296; }; }
+
+function makeSim(seed){
+  const R = rng(seed);
+  let spare=null;
+  const gauss=()=>{ if(spare!==null){const s=spare;spare=null;return s;}
+    let u=0,v=0; while(!u)u=R(); while(!v)v=R();
+    const m=Math.sqrt(-2*Math.log(u)); spare=m*Math.sin(6.283185*v); return m*Math.cos(6.283185*v); };
+  const px=new Float64Array(N),py=new Float64Array(N),pz=new Float64Array(N);
+  const vx=new Float64Array(N),vy=new Float64Array(N),vz=new Float64Array(N);
+  const dvx=new Float64Array(N),dvy=new Float64Array(N),dvz=new Float64Array(N);
+  const dpx=new Float64Array(N),dpy=new Float64Array(N),dpz=new Float64Array(N);
+  const live=new Uint8Array(N).fill(1), mass=new Float64Array(N).fill(CFG.m0);
+  const Rin=CFG.Rs-CFG.r, d2=(2*CFG.r)**2, picked=[], cand=[];
+  for(let i=0;i<N;i++){
+    for(let t=0;t<80;t++){
+      const u=Math.cbrt(R())*Rin*.92, th=R()*6.283185, ct=2*R()-1, st=Math.sqrt(1-ct*ct);
+      const x=u*st*Math.cos(th), y=u*st*Math.sin(th), z=u*ct;
+      let ok=true;
+      for(let j=0;j<i;j++){ const ax=x-px[j],ay=y-py[j],az=z-pz[j];
+        if(ax*ax+ay*ay+az*az<d2){ok=false;break;} }
+      if(ok||t===79){ px[i]=x;py[i]=y;pz[i]=z; break; }
+    }
+    vx[i]=gauss()*.3; vy[i]=gauss()*.3; vz[i]=gauss()*.3;
+  }
+  for(let k=N-1;k>0;k--){ const j=Math.floor(R()*(k+1));
+    for(const a of [px,py,pz,vx,vy,vz]){ const t=a[k]; a[k]=a[j]; a[j]=t; } }
+  let step=0;
+  function advance(){
+    if(step>=CFG.maxSteps||picked.length>=6) return false;
+    const s=step++;
+    for(let i=0;i<N;i++){ if(!live[i])continue;
+      const inv=CFG.m0/mass[i];
+      const rho=Math.hypot(px[i],py[i])+1e-9, rn=Math.min(rho/CFG.Rs,1);
+      const aUp=CFG.A*(1-1.15*rn*rn);
+      vx[i]+=((gauss()*CFG.T + CFG.swirl*(-py[i]/rho))*inv)*CFG.dt;
+      vy[i]+=((gauss()*CFG.T + CFG.swirl*( px[i]/rho))*inv)*CFG.dt;
+      vz[i]+=((aUp+gauss()*CFG.T*.75)*inv + CFG.g)*CFG.dt;
+      vx[i]*=CFG.damp; vy[i]*=CFG.damp; vz[i]*=CFG.damp;
+    }
+    dvx.fill(0);dvy.fill(0);dvz.fill(0);dpx.fill(0);dpy.fill(0);dpz.fill(0);
+    for(let i=0;i<N;i++){ if(!live[i])continue;
+      for(let j=i+1;j<N;j++){ if(!live[j])continue;
+        const dx=px[j]-px[i],dy=py[j]-py[i],dz=pz[j]-pz[i];
+        const dd=dx*dx+dy*dy+dz*dz;
+        if(dd>=d2||dd<1e-12)continue;
+        const dist=Math.sqrt(dd),nx=dx/dist,ny=dy/dist,nz=dz/dist;
+        const rel=(vx[j]-vx[i])*nx+(vy[j]-vy[i])*ny+(vz[j]-vz[i])*nz;
+        const ov=2*CFG.r-dist, mi=mass[i],mj=mass[j],tot=mi+mj;
+        dpx[i]-=nx*ov*(mj/tot);dpy[i]-=ny*ov*(mj/tot);dpz[i]-=nz*ov*(mj/tot);
+        dpx[j]+=nx*ov*(mi/tot);dpy[j]+=ny*ov*(mi/tot);dpz[j]+=nz*ov*(mi/tot);
+        if(rel>=0)continue;
+        const imp=-(1+CFG.rest)*rel/(1/mi+1/mj);
+        dvx[i]-=imp*nx/mi;dvy[i]-=imp*ny/mi;dvz[i]-=imp*nz/mi;
+        dvx[j]+=imp*nx/mj;dvy[j]+=imp*ny/mj;dvz[j]+=imp*nz/mj;
+      } }
+    for(let i=0;i<N;i++){ if(!live[i])continue;
+      px[i]+=dpx[i];py[i]+=dpy[i];pz[i]+=dpz[i];
+      vx[i]+=dvx[i];vy[i]+=dvy[i];vz[i]+=dvz[i]; }
+    const ang=s*CFG.dt*CFG.ringW;
+    for(let i=0;i<N;i++){ if(!live[i])continue;
+      px[i]+=vx[i]*CFG.dt; py[i]+=vy[i]*CFG.dt; pz[i]+=vz[i]*CFG.dt;
+      const rr=Math.hypot(px[i],py[i],pz[i]);
+      if(rr>Rin){ const nx=px[i]/rr,ny=py[i]/rr,nz=pz[i]/rr;
+        px[i]=nx*Rin;py[i]=ny*Rin;pz[i]=nz*Rin;
+        const vn=vx[i]*nx+vy[i]*ny+vz[i]*nz;
+        if(vn>0){vx[i]-=(1+CFG.wallRest)*vn*nx;vy[i]-=(1+CFG.wallRest)*vn*ny;vz[i]-=(1+CFG.wallRest)*vn*nz;} }
+      if(s>=CFG.mixSteps){
+        for(let k=0;k<CFG.nPorts;k++){
+          const a=ang+k*2*Math.PI/CFG.nPorts;
+          const dx=px[i]-RRING*Math.cos(a), dy=py[i]-RRING*Math.sin(a), dz=pz[i]-ZRING;
+          if(dx*dx+dy*dy+dz*dz < CFG.catchR*CFG.catchR){ cand.push(i); break; }
+        }
+      }
+    }
+    if(cand.length){
+      for(let k=cand.length-1;k>0;k--){ const j=Math.floor(R()*(k+1));
+        const t=cand[k];cand[k]=cand[j];cand[j]=t; }
+      for(const i of cand){ if(picked.length>=6)break; if(!live[i])continue; live[i]=0; picked.push(i+1); }
+      cand.length=0;
+    }
+    return true;
+  }
+  return { advance, picked, live, px, py, pz,
+    run(){ while(advance()); return picked.length===6?picked.slice():null; },
+    get step(){return step;} };
+}
+
+/* ═══════════ 조건 판정 ═══════════ */
+const SLIPW = 7;
+function profile(nums){
+  const s=[...nums].sort((a,b)=>a-b);
+  const sum=s.reduce((a,b)=>a+b,0);
+  const ge32=s.filter(n=>n>=32).length;
+  const spread=s[5]-s[0];
+  let adj=0;
+  for(let i=0;i<6;i++)for(let j=i+1;j<6;j++){
+    const d=Math.abs(s[i]-s[j]);
+    if(d===SLIPW)adj++;
+    else if(d===1&&Math.floor((s[i]-1)/SLIPW)===Math.floor((s[j]-1)/SLIPW))adj++;
+  }
+  return {sorted:s,sum,ge32,spread,adj};
+}
+const accept = p => p.sum>=165 && p.ge32>=2 && p.spread>=33 && p.adj>=1 && p.adj<=2;
+
+/* ═══════════ 회차 계산 ═══════════ */
+const BASE_ROUND=1241, BASE=Date.UTC(2026,8,12);   // 1241회 추첨일
+function nextDraw(){
+  const now=Date.now();
+  const kst=new Date(now+9*3600e3);
+  let d=Date.UTC(kst.getUTCFullYear(),kst.getUTCMonth(),kst.getUTCDate());
+  const dow=new Date(d).getUTCDay();             // 6 = 토요일
+  let add=(6-dow+7)%7;
+  if(add===0 && kst.getUTCHours()>=21) add=7;    // 토 21시 이후면 다음 주
+  d+=add*86400e3;
+  const round=BASE_ROUND+Math.round((d-BASE)/604800e3);
+  return {round, date:new Date(d)};
+}
+const fmtDate = dt => `${dt.getUTCFullYear()}.${String(dt.getUTCMonth()+1).padStart(2,"0")}.${String(dt.getUTCDate()).padStart(2,"0")}`;
+const ROUND = nextDraw();
+document.getElementById("rRound").textContent = ROUND.round.toLocaleString()+"회";
+document.getElementById("rDate").textContent = fmtDate(ROUND.date);
+
+/* ═══════════ 공 색상 (동행복권 색 규칙) ═══════════ */
+const ballColor = n => n<=10?"#FBC400" : n<=20?"#69C8F2" : n<=30?"#FF7272" : n<=40?"#AAAAAA" : "#B0D840";
+
+/* ═══════════ 게임 카드 ═══════════ */
+const LETTERS=["A","B","C","D","E"];
+const gamesEl=document.getElementById("games");
+let GAMES=LETTERS.map(()=>null);
+function renderGames(){
+  gamesEl.innerHTML="";
+  GAMES.forEach((g,i)=>{
+    const div=document.createElement("div");
+    div.className="game";
+    const balls = g
+      ? g.nums.map(n=>`<div class="ball" style="background:${ballColor(n)}">${n}</div>`).join("")
+      : Array(6).fill('<div class="ball skel"></div>').join("");
+    const p = g ? profile(g.nums) : null;
+    const chips = p ? `
+      <span class="chip on">합계 ${p.sum}</span>
+      <span class="chip on">32+ ${p.ge32}개</span>
+      <span class="chip on">폭 ${p.spread}</span>
+      <span class="chip on">인접 ${p.adj}쌍</span>
+      <span class="chip">시도 ${g.tries}회</span>` : `<span class="chip">대기</span>`;
+    div.innerHTML=`<div class="ghead"><span class="gname">${LETTERS[i]} 게임</span>
+      <span class="gprice">자동 · 1,000원</span></div>
+      <div class="balls">${balls}</div><div class="chips">${chips}</div>`;
+    gamesEl.appendChild(div);
+  });
+}
+renderGames();
+
+/* ═══════════ 캔버스 3D 투영 렌더러 (구형 챔버 + 회전링) ═══════════ */
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const PITCH=.28, CAMD=1.35, F=980;
+function project(x,y,z){
+  const cy=Math.cos(PITCH), sy=Math.sin(PITCH);
+  const depth = y*cy + z*sy + CAMD;
+  const up = -y*sy + z*cy;
+  return { sx: cv.width/2 + F*x/depth, sy: cv.height/2 - F*up/depth, d: depth, s: F/depth };
+}
+function circle3(radius, zz, style, width, dash){
+  ctx.beginPath();
+  for(let a=0;a<=72;a++){ const th=a/72*6.283185;
+    const p=project(radius*Math.cos(th), radius*Math.sin(th), zz);
+    a?ctx.lineTo(p.sx,p.sy):ctx.moveTo(p.sx,p.sy); }
+  ctx.strokeStyle=style; ctx.lineWidth=width;
+  if(dash) ctx.setLineDash(dash);
+  ctx.stroke(); ctx.setLineDash([]);
+}
+function drawScene(sim, drawn, ang){
+  const cs=getComputedStyle(document.documentElement);
+  const glass=cs.getPropertyValue("--glass").trim();
+  const ink3=cs.getPropertyValue("--ink-3").trim();
+  const warm=cs.getPropertyValue("--warm").trim();
+  ctx.clearRect(0,0,cv.width,cv.height);
+  for(const t of [-.72,-.38,0,.38,.72]){
+    const zz=CFG.Rs*t, rad=CFG.Rs*Math.sqrt(Math.max(1-t*t,0));
+    circle3(rad, zz, glass, t===0?2:1.2);
+  }
+  circle3(RRING, ZRING, ink3, 1.5, [6,5]);
+  for(let k=0;k<CFG.nPorts;k++){
+    const a=ang+k*2*Math.PI/CFG.nPorts;
+    const p=project(RRING*Math.cos(a), RRING*Math.sin(a), ZRING);
+    const rr=Math.max(CFG.catchR*p.s,4);
+    ctx.beginPath(); ctx.arc(p.sx,p.sy,rr,0,6.283);
+    ctx.strokeStyle=warm; ctx.lineWidth=2; ctx.globalAlpha=.75; ctx.stroke(); ctx.globalAlpha=1;
+  }
+  const order=[];
+  for(let i=0;i<N;i++) if(sim.live[i]) order.push(i);
+  order.sort((a,b)=>project(sim.px[b],sim.py[b],sim.pz[b]).d - project(sim.px[a],sim.py[a],sim.pz[a]).d);
+  for(const i of order){
+    const p=project(sim.px[i],sim.py[i],sim.pz[i]);
+    const r=Math.max(CFG.r*p.s,3);
+    const g=ctx.createRadialGradient(p.sx-r*.35,p.sy-r*.4,r*.12,p.sx,p.sy,r);
+    const col=ballColor(i+1);
+    g.addColorStop(0,"#ffffff"); g.addColorStop(.32,col); g.addColorStop(1,"rgba(0,0,0,.42)");
+    ctx.beginPath(); ctx.arc(p.sx,p.sy,r,0,6.284); ctx.fillStyle=g; ctx.fill();
+    if(r>11){ ctx.fillStyle="#15181c"; ctx.font="500 "+Math.round(r*.82)+"px 'IBM Plex Mono', monospace";
+      ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText(String(i+1),p.sx,p.sy+r*.03); }
+  }
+  if(drawn.length){
+    ctx.fillStyle=cs.getPropertyValue("--surface").trim();
+    ctx.globalAlpha=.85; ctx.fillRect(0,0,cv.width,66); ctx.globalAlpha=1;
+    ctx.beginPath(); ctx.moveTo(0,66); ctx.lineTo(cv.width,66);
+    ctx.strokeStyle=cs.getPropertyValue("--rule").trim(); ctx.lineWidth=1; ctx.stroke();
+    ctx.fillStyle=ink3; ctx.font="400 12px 'IBM Plex Mono', monospace";
+    ctx.textAlign="left"; ctx.textBaseline="middle"; ctx.fillText("추첨된 번호", 20, 33);
+  }
+  drawn.forEach(function(n,k){
+    const x=112+k*54, y=33, r=21;
+    const g=ctx.createRadialGradient(x-7,y-8,3,x,y,r);
+    g.addColorStop(0,"#ffffff"); g.addColorStop(.32,ballColor(n)); g.addColorStop(1,"rgba(0,0,0,.42)");
+    ctx.beginPath(); ctx.arc(x,y,r,0,6.284); ctx.fillStyle=g; ctx.fill();
+    ctx.fillStyle="#15181c"; ctx.font="500 16px 'IBM Plex Mono', monospace";
+    ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText(String(n),x,y+1);
+  });
+}
+
+/* ═══════════ 추첨 진행 ═══════════ */
+const statusEl=document.getElementById("status"), progEl=document.getElementById("prog");
+const btnDraw=document.getElementById("btnDraw"), btnSkip=document.getElementById("btnSkip");
+let animating=false, skipReq=false;
+const rand32 = () => { const a=new Uint32Array(1);
+  (self.crypto||self.msCrypto).getRandomValues(a); return a[0]||1; };
+
+function searchOne(){
+  let tries=0;
+  for(let t=0;t<600;t++){
+    const seed=rand32(); tries++;
+    const res=makeSim(seed).run();
+    if(res && accept(profile(res))) return {seed,nums:profile(res).sorted,tries};
+  }
+  return null;
+}
+
+function animate(seed, onDone){
+  const sim=makeSim(seed); const drawn=[];
+  animating=true; skipReq=false; btnSkip.disabled=false;
+  let last=0;
+  function frame(){
+    if(skipReq){ while(sim.advance()); finish(); return; }
+    for(let k=0;k<7;k++){ if(!sim.advance()) break; }
+    while(drawn.length<sim.picked.length) drawn.push(sim.picked[drawn.length]);
+    drawScene(sim, drawn, sim.step*CFG.dt*CFG.ringW);
+    const pct=Math.min(100,sim.step/CFG.maxSteps*100);
+    progEl.style.width=pct+"%";
+    if(sim.picked.length<6 && sim.step<CFG.maxSteps){ requestAnimationFrame(frame); }
+    else finish();
+  }
+  function finish(){
+    drawScene(sim, sim.picked.slice(), sim.step*CFG.dt*CFG.ringW);
+    progEl.style.width="100%"; animating=false; btnSkip.disabled=true; onDone();
+  }
+  requestAnimationFrame(frame);
+}
+
+async function generate(){
+  btnDraw.disabled=true;
+  GAMES=LETTERS.map(()=>null); renderGames();
+  const found=[];
+  for(let i=0;i<5;i++){
+    statusEl.innerHTML=`조건에 맞는 조합 탐색 중… <b>${i+1}/5게임</b>`;
+    progEl.style.width=((i+1)/5*100)+"%";
+    await new Promise(r=>setTimeout(r,0));
+    const g=searchOne();
+    if(!g){ statusEl.textContent="탐색 실패 — 다시 시도해 주세요."; btnDraw.disabled=false; return; }
+    found.push(g); GAMES[i]=g; renderGames();
+  }
+  const totalTries=found.reduce((a,g)=>a+g.tries,0);
+  statusEl.innerHTML=`A 게임 추첨 과정 재생 중… <b>총 ${totalTries}회 시도</b>`;
+  animate(found[0].seed, ()=>{
+    statusEl.innerHTML=`${ROUND.round.toLocaleString()}회 추천 완료 · 5게임 · 총 <b>${totalTries}회</b> 돌려 조건 충족분 채택`;
+    btnDraw.disabled=false;
+    save(found);
+  });
+}
+
+/* ═══════════ 저장 / 기록 ═══════════
+   claude.use("db")가 있으면 그걸 쓰고, 없으면(일반 웹) localStorage로 대체 */
+const LSKEY = "lotto645.picks";
+const LS = {
+  all(){ try { return JSON.parse(localStorage.getItem(LSKEY) || "{}"); } catch(e){ return {}; } },
+  put(v){ const a = this.all(); a[v.round] = v;
+    try { localStorage.setItem(LSKEY, JSON.stringify(a)); } catch(e){} },
+  get(round){ return this.all()[round] || null; },
+  recent(n){ return Object.values(this.all()).sort((a,b)=>b.round-a.round).slice(0,n); }
+};
+let DB = null;
+const histBox = document.getElementById("histBox");
+function histLine(round, date, games){
+  return '<div style="padding:7px 0;border-bottom:1px solid var(--rule-soft)">' +
+    '<b style="color:var(--ink)">' + round + '회</b> ' +
+    '<span style="color:var(--ink-3)">' + date + '</span><br>' +
+    games.map((g,i)=>LETTERS[i] + " " + g.nums.map(n=>String(n).padStart(2)).join(" ")).join(" &nbsp;·&nbsp; ") +
+    '</div>';
+}
+async function save(found){
+  const rec = { round: ROUND.round, date: fmtDate(ROUND.date),
+    games: found.map(g=>({nums:g.nums, tries:g.tries})), savedAt: new Date().toISOString() };
+  LS.put(rec);
+  if (DB) { try { await DB.doc("picks/" + ROUND.round).set(rec); } catch(e){} }
+  loadHistory();
+}
+async function loadHistory(){
+  let rows = LS.recent(10);
+  if (DB) {
+    try {
+      const snap = await DB.collection("picks").orderBy("round","desc").limit(10).get();
+      const r = []; snap.forEach(d=>{ const v=d.data(); if(v && v.games) r.push(v); });
+      if (r.length) rows = r;
+    } catch(e){}
+  }
+  histBox.innerHTML = rows.length
+    ? rows.map(v=>histLine(v.round, v.date, v.games)).join("")
+    : "아직 저장된 기록이 없습니다. 추첨하면 이 회차부터 쌓입니다.";
+}
+(async ()=>{
+  try { DB = (window.claude && claude.use) ? await claude.use("db") : null; } catch(e){ DB = null; }
+  loadHistory();
+  let cur = LS.get(ROUND.round);
+  if (DB) { try { const d = await DB.doc("picks/" + ROUND.round).get(); const v = d.data(); if (v && v.games) cur = v; } catch(e){} }
+  if (cur && cur.games && !animating && GAMES.every(g=>g===null)) {
+    GAMES = cur.games.map(g=>({nums:g.nums, tries:g.tries})); renderGames();
+    statusEl.innerHTML = ROUND.round.toLocaleString() + "회 저장된 추천을 불러왔습니다.";
+  }
+})();
+
+btnDraw.addEventListener("click",()=>{ if(!animating) generate(); });
+btnSkip.addEventListener("click",()=>{ skipReq=true; });
+
+/* 첫 화면: 정지 상태의 챔버를 그리고 바로 추첨 시작 */
+{
+  const idle=makeSim(rand32());
+  for(let k=0;k<180;k++) idle.advance();
+  drawScene(idle, [], idle.step*CFG.dt*CFG.ringW);
+}
+btnDraw.disabled=false;
+generate();
+</script>
+
+</body>
+</html>

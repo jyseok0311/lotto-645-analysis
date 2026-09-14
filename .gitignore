@@ -1,0 +1,8 @@
+node_modules/
+*.log
+.DS_Store
+Thumbs.db
+_preview.html
+_picker_preview.html
+cj*.txt
+c3.txt
