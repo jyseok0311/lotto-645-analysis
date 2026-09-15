@@ -56,6 +56,7 @@ h1 .thin{font-weight:400; color:var(--ink-2)}
 .ctitle{font-family:Hahmlet,serif; font-weight:700; font-size:23px; line-height:1.3}
 .card.a .ctitle{color:var(--cool)}
 .card.b .ctitle{color:var(--warm)}
+.card.c .ctitle{color:var(--ink)}
 .cdesc{font-size:14px; color:var(--ink-2)}
 .cgo{margin-top:auto; padding-top:12px; font-family:"IBM Plex Mono",monospace;
   font-size:12.5px; color:var(--ink-3); border-top:1px dashed var(--rule)}
@@ -141,6 +142,7 @@ footer dd{margin:0; color:var(--ink-2)}
     <li><a class="nl" href="./" aria-current="page">개요</a></li>
     <li><a class="nl" href="./report/">분석 리포트</a></li>
     <li><a class="nl" href="./picker/">추첨기</a></li>
+    <li><a class="nl" href="./scan/">용지 판독</a></li>
   </ul>
   <span class="spacer"></span>
   <a class="src" href="https://github.com/jyseok0311/lotto-645-analysis" rel="noopener">GitHub ↗</a>
@@ -164,6 +166,12 @@ footer dd{margin:0; color:var(--ink-2)}
       <span class="ctitle">비인기 조합 추첨기</span>
       <span class="cdesc">실제 비너스 추첨기 사양(지름 50cm 구형 챔버, 폴리우레탄 4g 볼, 회전링 4구 추출)을 반영한 3D 시뮬레이션으로 매주 5게임을 뽑는다.</span>
       <span class="cgo">picker/ →</span>
+    </a>
+    <a class="card c" href="scan/">
+      <span class="ctag">판독</span>
+      <span class="ctitle">용지 스마트 판독</span>
+      <span class="cdesc">용지를 찍거나 올리면 QR을 읽고, 실패하면 OCR로 숫자를 뜯어낸다. 전 회차와 대조해 당첨 여부를, 선호도 모델로 &ldquo;몇 명과 나눠 갖게 되는 조합인지&rdquo;를 계산한다.</span>
+      <span class="cgo">scan/ →</span>
     </a>
   </div>
 </header>

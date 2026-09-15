@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="로또 용지를 찍거나 올리면 QR·OCR로 번호를 판독하고, 1~1241회차 전수 분석 기준으로 당첨 여부와 조합 인기도를 즉시 계산한다. 사진은 브라우저 밖으로 나가지 않는다.">
+<meta name="color-scheme" content="light dark">
+<meta property="og:title" content="로또 용지 스마트 판독">
+<meta property="og:description" content="사진 한 장으로 번호를 읽고, 당첨 여부와 조합 인기도를 전수 분석 기준으로 계산한다.">
+<meta property="og:type" content="website">
+<style>
+  html{color-scheme:light dark}
+  body{margin:0;font:14px/1.5 system-ui,sans-serif}
+  img{max-width:100%}
+  [hidden]{display:none!important}
+</style>
+<title>로또 용지 스마트 판독</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@400;500;700&family=IBM+Plex+Sans+KR:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  color-scheme: light;
+  --paper:#E7EBEF; --surface:#FDFDFE; --surface-2:#F1F4F7; --sunken:#DCE2E8;
+  --ink:#10161F; --ink-2:#3D4855; --ink-3:#6A7481; --rule:#C9D1DA; --rule-soft:#DDE3EA;
+  --cool:#2a78d6; --warm:#e34948; --ok:#1b6b4a;
+  --stage:#DFE5EB; --stage-2:#EFF3F6;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --paper:#0D1117; --surface:#161B22; --surface-2:#1C222B; --sunken:#10151C;
+    --ink:#E7EDF3; --ink-2:#AAB6C3; --ink-3:#7B8797; --rule:#2C3440; --rule-soft:#232A34;
+    --cool:#3987e5; --warm:#e66767; --ok:#4cb98a;
+    --stage:#11161D; --stage-2:#1A212A;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --paper:#0D1117; --surface:#161B22; --surface-2:#1C222B; --sunken:#10151C;
+  --ink:#E7EDF3; --ink-2:#AAB6C3; --ink-3:#7B8797; --rule:#2C3440; --rule-soft:#232A34;
+  --cool:#3987e5; --warm:#e66767; --ok:#4cb98a;
+  --stage:#11161D; --stage-2:#1A212A;
+}
+*{box-sizing:border-box}
+body{background:var(--paper); color:var(--ink);
+  font-family:"IBM Plex Sans KR",-apple-system,"Malgun Gothic",sans-serif;
+  font-weight:300; line-height:1.65; -webkit-font-smoothing:antialiased}
+.wrap{max-width:1000px; margin:0 auto; padding:0 20px 80px}
+h1,h2{font-family:Hahmlet,"IBM Plex Sans KR",serif; font-weight:700; margin:0; text-wrap:balance}
+.mono{font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums}
+
+header{padding:40px 0 22px; border-bottom:2px solid var(--ink); margin-bottom:26px}
+.eyebrow{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.15em;
+  text-transform:uppercase; color:var(--ink-3); margin-bottom:14px}
+h1{font-size:clamp(27px,4.6vw,40px); letter-spacing:-.02em}
+.sub{margin-top:12px; color:var(--ink-2); font-size:15px; max-width:64ch}
+
+button{font-family:"IBM Plex Sans KR",sans-serif; font-size:14px; font-weight:500;
+  padding:10px 20px; border-radius:4px; border:1px solid var(--ink); background:var(--ink);
+  color:var(--paper); cursor:pointer}
+button:hover:not(:disabled){opacity:.87}
+button:disabled{opacity:.42; cursor:default}
+button.ghost{background:transparent; color:var(--ink); border-color:var(--rule)}
+button.sm{padding:6px 12px; font-size:12.5px}
+button:focus-visible{outline:2px solid var(--cool); outline-offset:2px}
+
+/* 입력 */
+.intake{display:grid; grid-template-columns:1fr; gap:2px; background:var(--rule); border:1px solid var(--rule)}
+@media (min-width:760px){ .intake{grid-template-columns:1.2fr .8fr} }
+.intake.mobile .side{order:1} .intake.mobile .drop{order:2}
+.drop{background:var(--surface); padding:34px 26px; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:11px; text-align:center; min-height:214px;
+  cursor:pointer; transition:background .14s; border:0; color:inherit; width:100%; border-radius:0}
+.drop:hover{background:var(--surface-2); opacity:1}
+.drop.hot{background:var(--surface-2); box-shadow:inset 0 0 0 2px var(--cool)}
+.drop .ic{font-size:29px; line-height:1}
+.drop .t{font-family:Hahmlet,serif; font-weight:700; font-size:18px}
+.drop .d{font-size:13px; color:var(--ink-2); max-width:34ch; font-weight:300}
+.drop .kbd{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink-3);
+  border:1px solid var(--rule); border-radius:3px; padding:2px 7px}
+.side{background:var(--surface); padding:20px; display:flex; flex-direction:column; gap:10px}
+.side .t{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink-3)}
+.side p{margin:0; font-size:12.8px; color:var(--ink-2)}
+
+/* 카메라 */
+.stage{position:relative; background:#000; border:1px solid var(--rule); overflow:hidden; margin-top:2px}
+.stage video{display:block; width:100%; height:auto; max-height:72vh; background:#000}
+.reticle{position:absolute; left:8%; right:8%; top:20%; bottom:20%; pointer-events:none;
+  border:2px solid rgba(255,255,255,.55); border-radius:6px;
+  box-shadow:0 0 0 100vmax rgba(0,0,0,.32)}
+.camhint{position:absolute; left:0; right:0; bottom:0; padding:9px 14px;
+  background:linear-gradient(transparent,rgba(0,0,0,.66)); color:#fff;
+  font-size:12.5px; text-align:center; pointer-events:none}
+.stagebar{display:flex; flex-wrap:wrap; gap:9px; align-items:center; justify-content:space-between;
+  background:var(--surface); border:1px solid var(--rule); border-top:none; padding:11px 14px}
+
+/* 진행 */
+.bar{height:3px; background:var(--sunken); overflow:hidden}
+.bar i{display:block; height:100%; width:0; background:var(--cool); transition:width .2s}
+.log{background:var(--surface); border:1px solid var(--rule); padding:11px 15px;
+  font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--ink-2);
+  max-height:158px; overflow-y:auto; margin-top:2px}
+.log div{padding:1.5px 0}
+.log b{color:var(--ok); font-weight:500}
+.log i{color:var(--warm); font-style:normal}
+
+section{margin-top:42px}
+.shead{display:flex; align-items:baseline; gap:12px; border-bottom:1px solid var(--ink);
+  padding-bottom:9px; margin-bottom:18px; flex-wrap:wrap}
+h2{font-size:19px}
+.snum{font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--ink-3)}
+.shead .spacer{flex:1 1 auto}
+.panel{background:var(--surface); border:1px solid var(--rule-soft); padding:17px 20px}
+.note{font-size:12.6px; color:var(--ink-3); margin-top:10px}
+.note code{font-family:"IBM Plex Mono",monospace; font-size:11.5px}
+
+/* 회차 */
+.roundrow{display:flex; flex-wrap:wrap; gap:11px; align-items:center; margin-bottom:18px;
+  background:var(--surface); border:1px solid var(--rule); padding:12px 15px}
+.roundrow label{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink-3)}
+input[type=number]{font-family:"IBM Plex Mono",monospace; font-size:14px;
+  padding:7px 10px; width:104px; border:1px solid var(--rule); border-radius:4px;
+  background:var(--surface-2); color:var(--ink); font-variant-numeric:tabular-nums}
+input:focus-visible{outline:2px solid var(--cool); outline-offset:1px}
+.rmeta{font-size:13px; color:var(--ink-2)}
+
+/* 게임 카드 */
+.games{display:grid; grid-template-columns:repeat(auto-fit,minmax(304px,1fr)); gap:2px;
+  background:var(--rule); border:1px solid var(--rule)}
+.game{background:var(--surface); padding:15px 18px 13px; display:flex; flex-direction:column; gap:10px}
+.ghead{display:flex; align-items:center; justify-content:space-between; gap:10px}
+.gname{font-family:Hahmlet,serif; font-weight:700; font-size:16px}
+.gsrc{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink-3)}
+.balls{display:flex; gap:7px; flex-wrap:wrap}
+.ball{width:38px; height:38px; border-radius:50%; display:grid; place-items:center;
+  font-family:"IBM Plex Mono",monospace; font-size:14px; font-weight:500; color:#15181c;
+  font-variant-numeric:tabular-nums; box-shadow:inset 0 -3px 6px rgba(0,0,0,.16);
+  border:0; padding:0; cursor:pointer}
+.ball:hover{opacity:1; outline:2px solid var(--ink); outline-offset:1px}
+.ball.miss{opacity:.32; filter:grayscale(.7)}
+.ball.hit{outline:2.5px solid var(--ink); outline-offset:2px}
+.chips{display:flex; flex-wrap:wrap; gap:6px}
+.chip{font-family:"IBM Plex Mono",monospace; font-size:11px; padding:3px 8px; border-radius:3px;
+  background:var(--surface-2); color:var(--ink-2); border:1px solid var(--rule-soft)}
+.chip.win{background:var(--ok); color:#fff; border-color:var(--ok)}
+.chip.hot{background:var(--warm); color:#fff; border-color:var(--warm)}
+.chip.cold{background:var(--cool); color:#fff; border-color:var(--cool)}
+.gact{display:flex; gap:6px; margin-top:auto; padding-top:3px}
+
+/* 번호 편집 */
+.grid45{display:grid; grid-template-columns:repeat(7,1fr); gap:5px; margin-top:12px}
+.grid45 button{padding:0; height:36px; font-family:"IBM Plex Mono",monospace; font-size:13px;
+  font-weight:500; background:var(--surface-2); color:var(--ink); border:1px solid var(--rule)}
+.grid45 button.sel{background:var(--ink); color:var(--paper); border-color:var(--ink)}
+dialog{border:1px solid var(--rule); background:var(--surface); color:var(--ink);
+  padding:20px 22px; border-radius:6px; max-width:390px; width:calc(100% - 30px)}
+dialog::backdrop{background:rgba(0,0,0,.48)}
+dialog h3{font-family:Hahmlet,serif; font-size:17px; margin:0}
+.dlgsub{font-size:12.5px; color:var(--ink-3); margin-top:3px}
+.dlgfoot{display:flex; gap:8px; justify-content:flex-end; margin-top:16px; align-items:center}
+.dlgfoot .spacer{flex:1 1 auto}
+
+table{border-collapse:collapse; width:100%; font-size:13.5px}
+th{text-align:left; font-weight:500; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--ink-3); padding:0 12px 8px 0; border-bottom:1px solid var(--rule); white-space:nowrap}
+td{padding:8px 12px 8px 0; border-bottom:1px solid var(--rule-soft); vertical-align:baseline}
+td.n{font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; color:var(--ink-2); white-space:nowrap}
+tr:last-child td{border-bottom:none}
+.scroller{overflow-x:auto}
+.stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:2px;
+  background:var(--rule); border:1px solid var(--rule)}
+.st{background:var(--surface); padding:16px 18px}
+.st .k{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink-3)}
+.st .v{font-family:Hahmlet,serif; font-size:25px; font-weight:700; margin:5px 0 3px;
+  font-variant-numeric:tabular-nums}
+.st .d{font-size:12.5px; color:var(--ink-2)}
+.warn{border-left:3px solid var(--warm); background:var(--surface); padding:14px 18px;
+  margin-top:18px; font-size:13.5px; color:var(--ink-2)}
+.warn.good{border-left-color:var(--ok)}
+.warn b{color:var(--ink); font-weight:600}
+.prev{margin-top:2px; border:1px solid var(--rule); background:var(--sunken)}
+.prev img{display:block; width:100%; height:auto; max-height:230px; object-fit:contain}
+.hist{font-size:13px}
+.hist .row{padding:8px 0; border-bottom:1px solid var(--rule-soft)}
+.hist .row:last-child{border-bottom:none}
+footer{margin-top:60px; padding-top:20px; border-top:2px solid var(--ink);
+  font-size:12.5px; color:var(--ink-3)}
+footer a{color:var(--cool)}
+footer dl{display:grid; grid-template-columns:max-content 1fr; gap:6px 18px; margin:12px 0 0}
+footer dt{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.1em;
+  text-transform:uppercase; padding-top:2px}
+footer dd{margin:0; color:var(--ink-2)}
+@media (max-width:620px){
+  .ball{width:34px; height:34px; font-size:13px}
+  .grid45 button{height:38px}
+  .wrap{padding:0 16px 60px}
+}
+</style>
+<style data-nav>
+/* 사이트 공통 내비게이션 — 각 페이지가 정의한 테마 토큰(--ink, --paper …)을 그대로 쓴다 */
+.sitenav{
+  position:sticky; top:0; z-index:40;
+  display:flex; align-items:center; gap:18px; flex-wrap:wrap;
+  padding:11px 22px;
+  background:var(--surface); border-bottom:1px solid var(--rule);
+  font-family:"IBM Plex Sans KR",-apple-system,"Malgun Gothic",sans-serif;
+  font-weight:300;
+  -webkit-backdrop-filter:saturate(180%) blur(8px); backdrop-filter:saturate(180%) blur(8px);
+}
+.sitenav .brand{
+  font-family:Hahmlet,"IBM Plex Sans KR",serif; font-weight:700; font-size:14.5px;
+  color:var(--ink); text-decoration:none; letter-spacing:-.01em; margin-right:4px;
+  white-space:nowrap;
+}
+.sitenav .brand:hover{opacity:.75}
+.sitenav ul{display:flex; gap:4px; list-style:none; margin:0; padding:0; flex-wrap:wrap}
+.sitenav a.nl{
+  display:inline-block; padding:5px 11px; border-radius:4px;
+  font-size:13.5px; color:var(--ink-2); text-decoration:none;
+  border:1px solid transparent; white-space:nowrap;
+}
+.sitenav a.nl:hover{background:var(--surface-2); color:var(--ink)}
+.sitenav a.nl[aria-current="page"]{
+  color:var(--ink); font-weight:500;
+  background:var(--surface-2); border-color:var(--rule);
+}
+.sitenav .spacer{flex:1 1 auto}
+.sitenav .src{
+  font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--ink-3);
+  text-decoration:none; white-space:nowrap;
+}
+.sitenav .src:hover{color:var(--ink-2); text-decoration:underline}
+.sitenav a:focus-visible{outline:2px solid var(--cool); outline-offset:2px}
+
+@media (max-width:620px){
+  .sitenav{gap:10px; padding:9px 16px}
+  .sitenav .src{display:none}
+  .sitenav a.nl{padding:5px 9px; font-size:13px}
+}
+@media (prefers-reduced-motion:reduce){ .sitenav{transition:none} }
+</style>
+</head>
+<body>
+<nav class="sitenav" aria-label="사이트 메뉴">
+  <a class="brand" href="../">로또 6/45 전수 분석</a>
+  <ul>
+    <li><a class="nl" href="../">개요</a></li>
+    <li><a class="nl" href="../report/">분석 리포트</a></li>
+    <li><a class="nl" href="../picker/">추첨기</a></li>
+    <li><a class="nl" href="../scan/" aria-current="page">용지 판독</a></li>
+  </ul>
+  <span class="spacer"></span>
+  <a class="src" href="https://github.com/jyseok0311/lotto-645-analysis" rel="noopener">GitHub ↗</a>
+</nav>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">용지 판독 · QR 우선 · OCR 폴백 · 전 과정 브라우저 내 처리</div>
+  <h1>사진 한 장으로<br>번호를 읽고, 조합을 진단한다.</h1>
+  <p class="sub">용지의 QR을 먼저 읽고, 실패하면 OCR로 숫자를 뜯어낸다. 판독한 번호는 1~1,241회차 전수 데이터에 바로 대조해 <strong>당첨 여부</strong>와, 리포트에서 측정한 <strong>조합 인기도</strong>&mdash;같은 번호를 몇 명이나 골랐을지&mdash;를 계산한다.</p>
+</header>
+
+<!-- ══════════ 1. 입력 ══════════ -->
+<section id="secIn" style="margin-top:0">
+  <div class="shead"><h2>용지 넣기</h2><span class="snum">01</span><span class="spacer"></span>
+    <span class="snum" id="dbState">데이터 불러오는 중…</span></div>
+
+  <div class="intake">
+    <button class="drop" id="drop" type="button">
+      <span class="ic" id="dropIc">📄</span>
+      <span class="t" id="dropT">사진 올리기</span>
+      <span class="d" id="dropD">클릭해서 파일을 고르거나, 이 영역으로 끌어다 놓으세요.</span>
+      <span class="kbd" id="dropK">Ctrl+V 로 붙여넣기도 됩니다</span>
+    </button>
+    <div class="side">
+      <span class="t">또는</span>
+      <button id="btnCam" type="button">📷 카메라로 찍기</button>
+      <button class="ghost" id="btnManual" type="button">✏️ 번호 직접 입력</button>
+      <p id="camNote">카메라를 켜면 용지를 비추는 동안 QR을 계속 탐색합니다. 찍을 필요 없이 인식되면 바로 멈춥니다.</p>
+    </div>
+  </div>
+
+  <div id="camWrap" hidden>
+    <div class="stage">
+      <video id="video" playsinline muted></video>
+      <div class="reticle"></div>
+      <div class="camhint" id="camHint">용지의 QR코드가 사각형 안에 들어오게 비춰 주세요</div>
+    </div>
+    <div class="stagebar">
+      <span class="snum" id="camStat">카메라 준비 중…</span>
+      <span style="flex:1 1 auto"></span>
+      <button class="ghost sm" id="btnTorch" hidden type="button">🔦 플래시</button>
+      <button class="ghost sm" id="btnShot" type="button">지금 화면으로 판독</button>
+      <button class="ghost sm" id="btnCamOff" type="button">닫기</button>
+    </div>
+  </div>
+
+  <div id="progWrap" hidden>
+    <div class="bar"><i id="progBar"></i></div>
+    <div class="log" id="log"></div>
+  </div>
+
+  <div class="prev" id="prevWrap" hidden><img id="prevImg" alt="판독한 이미지 미리보기"></div>
+
+  <input type="file" id="fileIn" accept="image/*" hidden>
+  <input type="file" id="fileCam" accept="image/*" capture="environment" hidden>
+</section>
+
+<!-- ══════════ 2. 판독 결과 ══════════ -->
+<section id="secRead" hidden>
+  <div class="shead"><h2>판독 결과</h2><span class="snum">02</span><span class="spacer"></span>
+    <span class="snum">번호를 누르면 고칠 수 있습니다</span></div>
+
+  <div class="roundrow">
+    <label for="roundIn">회차</label>
+    <input type="number" id="roundIn" min="1" max="3000" step="1">
+    <button class="ghost sm" id="btnLatest" type="button">최신 회차</button>
+    <span class="rmeta" id="roundMeta"></span>
+  </div>
+
+  <div class="games" id="games"></div>
+
+  <div style="display:flex; gap:8px; margin-top:14px; flex-wrap:wrap">
+    <button class="ghost sm" id="btnAddGame" type="button">+ 게임 추가</button>
+    <button class="ghost sm" id="btnReset" type="button">처음부터</button>
+    <span style="flex:1 1 auto"></span>
+    <button class="sm" id="btnAnalyze" type="button">분석하기 ↓</button>
+  </div>
+</section>
+
+<!-- ══════════ 3. 분석 ══════════ -->
+<section id="secWin" hidden>
+  <div class="shead"><h2>당첨 확인</h2><span class="snum">03</span><span class="spacer"></span>
+    <span class="snum" id="winRound"></span></div>
+  <div id="winBody"></div>
+</section>
+
+<section id="secPop" hidden>
+  <div class="shead"><h2>조합 인기도</h2><span class="snum">04</span><span class="spacer"></span>
+    <span class="snum">같은 번호를 고른 사람이 많을수록 당첨금은 줄어든다</span></div>
+  <div id="popBody"></div>
+</section>
+
+<section id="secHist2" hidden>
+  <div class="shead"><h2>역대 대조</h2><span class="snum">05</span><span class="spacer"></span>
+    <span class="snum">1~1,241회차 전 회차와 맞대본 결과</span></div>
+  <div id="histBody"></div>
+</section>
+
+<section id="secSaved">
+  <div class="shead"><h2>최근 판독 기록</h2><span class="snum">06</span></div>
+  <div class="panel hist" id="savedBox">아직 판독한 용지가 없습니다.</div>
+</section>
+
+<footer>
+  <div><b>로또 6/45 전수 분석</b> · 용지 판독</div>
+  <dl>
+    <dt>처리 위치</dt><dd>전 과정이 브라우저 안에서 실행됩니다. 사진·번호는 어떤 서버로도 전송되지 않고, 판독 기록은 이 기기의 localStorage에만 남습니다.</dd>
+    <dt>QR</dt><dd>동행복권 용지 QR의 <code>v=</code> 값(회차 4자리 + [구분자 + 번호 12자리] 반복)을 직접 해석합니다. 네이티브 <code>BarcodeDetector</code>를 우선 쓰고, 없으면 jsQR로 내려갑니다.</dd>
+    <dt>OCR</dt><dd>QR 판독이 실패할 때만 Tesseract.js를 내려받아 숫자만 인식합니다(최초 1회 약 7MB, 이후 브라우저 캐시).</dd>
+    <dt>분석 기준</dt><dd>선호도 계수는 <a href="../report/">전수 분석 리포트</a> 2부·4부의 측정값이고, 당첨 확인은 <code>data/lotto_all.csv</code> 원본과 대조합니다.</dd>
+    <dt>주의</dt><dd>추첨 자체는 무작위입니다. 이 페이지는 당첨 확률을 올려 주지 않으며, 당첨됐을 때 <b>나눠 갖는 인원</b>에만 관여합니다. 공식 당첨 확인은 동행복권에서 하세요.</dd>
+  </dl>
+</footer>
+
+</div>
+
+<dialog id="dlg">
+  <h3 id="dlgTitle">번호 고치기</h3>
+  <div class="dlgsub" id="dlgSub">6개를 고르세요.</div>
+  <div class="grid45" id="dlgGrid"></div>
+  <div class="dlgfoot">
+    <button class="ghost sm" id="dlgDel" type="button">이 게임 삭제</button>
+    <span class="spacer"></span>
+    <button class="ghost sm" id="dlgCancel" type="button">취소</button>
+    <button class="sm" id="dlgOk" type="button">확인</button>
+  </div>
+</dialog>
+
+<script>
+"use strict";
+
+/* ═══════════════ 상수 ═══════════════ */
+const LETTERS = ["A","B","C","D","E","F","G","H"];
+const SLIPW = 7;                                   // 실제 용지 격자 폭 (리포트 4부에서 역추정)
+const ballColor = n => n<=10?"#FBC400" : n<=20?"#69C8F2" : n<=30?"#FF7272" : n<=40?"#AAAAAA" : "#B0D840";
+const $  = s => document.querySelector(s);
+const won = n => n>=1e8 ? (n/1e8).toFixed(n>=1e11?0:1).replace(/\.0$/,"")+"억원"
+               : n>=1e4 ? Math.round(n/1e4).toLocaleString()+"만원"
+               : n.toLocaleString()+"원";
+/* 6/45에서 한 조합이 3개 이상 맞을 확률 = (C(6,3)C(39,3)+C(6,4)C(39,2)+C(6,5)C(39,1)+1)/C(45,6) */
+const P3PLUS = 194130 / 8145060;
+
+/* ═══════════════ 데이터 ═══════════════ */
+let DRAWS = [];          // [{round, date, nums[6], bonus, ranks:[{w,p}×5]}]
+let BYROUND = new Map();
+let NUMPREF = new Map();  // 번호 → 사람선호도
+let DATA_OK = false;
+
+function splitCSV(text){
+  return text.replace(/^﻿/,"").trim().split(/\r?\n/).map(l=>l.split(","));
+}
+async function loadData(){
+  try{
+    const [a,b] = await Promise.all([
+      fetch("../data/lotto_all.csv").then(r=>{ if(!r.ok) throw new Error(r.status); return r.text(); }),
+      fetch("../data/number_stats.csv").then(r=>{ if(!r.ok) throw new Error(r.status); return r.text(); })
+    ]);
+    const rows = splitCSV(a); rows.shift();
+    DRAWS = rows.filter(r=>r.length>=19).map(r=>({
+      round:+r[0], date:r[1],
+      nums:[+r[2],+r[3],+r[4],+r[5],+r[6],+r[7]], bonus:+r[8],
+      ranks:[{w:+r[9],p:+r[10]},{w:+r[11],p:+r[12]},{w:+r[13],p:+r[14]},
+             {w:+r[15],p:+r[16]},{w:+r[17],p:+r[18]}]
+    }));
+    BYROUND = new Map(DRAWS.map(d=>[d.round,d]));
+    const srows = splitCSV(b); srows.shift();
+    srows.forEach(r=>{ if(r.length>=6) NUMPREF.set(+r[0], +r[5]); });
+    DATA_OK = true;
+    $("#dbState").textContent = DRAWS.length.toLocaleString()+"회차 적재 완료";
+  }catch(e){
+    $("#dbState").textContent = "데이터 로드 실패 — 당첨 확인은 건너뜁니다";
+  }
+}
+const latestRound = () => DRAWS.length ? DRAWS[DRAWS.length-1].round : 1241;
+
+/* 다음 추첨 회차 (추첨기 페이지와 같은 규칙: 토 21시 기준) */
+function nextRound(){
+  const base = DRAWS.length ? DRAWS[DRAWS.length-1] : null;
+  if(!base) return 1242;
+  const bd = Date.UTC(+base.date.slice(0,4), +base.date.slice(5,7)-1, +base.date.slice(8,10));
+  const kst = new Date(Date.now()+9*3600e3);
+  let d = Date.UTC(kst.getUTCFullYear(), kst.getUTCMonth(), kst.getUTCDate());
+  let add = (6 - new Date(d).getUTCDay() + 7) % 7;
+  if(add===0 && kst.getUTCHours()>=21) add = 7;
+  d += add*86400e3;
+  return base.round + Math.max(1, Math.round((d-bd)/604800e3));
+}
+
+/* ═══════════════ 선호도 모델 ═══════════════
+   docs/analysis-report.md 2부(구매자 선호도)·4부(용지 배열)의 측정값.
+   각 계수는 "그 특성을 가진 회차의 1등 당첨자 수 ÷ 무작위 기대치".
+   1.00 = 평균, 1.10이면 같은 번호를 고른 사람이 10% 많다 = 1인당 당첨금 약 9% 감소.       */
+const PREF = [
+  { key:"le31", label:"31 이하 개수", why:"생일·기념일에서 온 번호 쏠림",
+    rows:[
+      {t:"6개",     v:1.077, p:0.0195, n:108, ok:c=>c>=6},
+      {t:"5개",     v:0.969, p:0.0906, n:360, ok:c=>c===5},
+      {t:"4개",     v:1.056, p:0.0005, n:433, ok:c=>c===4},
+      {t:"3개",     v:0.938, p:0.0037, n:259, ok:c=>c===3},
+      {t:"2개 이하", v:0.916, p:0.0312, n:79,  ok:c=>c<=2}
+    ], val:p=>p.le31 },
+  { key:"sum", label:"번호 합계", why:"가운데로 몰아 적는 습관",
+    rows:[
+      {t:"110 이하",  v:1.092, p:6.2e-5, n:227, ok:s=>s<=110},
+      {t:"111~130",  v:1.008, p:0.7155, n:274, ok:s=>s>=111&&s<=130},
+      {t:"131~150",  v:1.018, p:0.3600, n:310, ok:s=>s>=131&&s<=150},
+      {t:"151~170",  v:0.967, p:0.1330, n:238, ok:s=>s>=151&&s<=170},
+      {t:"171 이상",  v:0.894, p:1.9e-5, n:190, ok:s=>s>=171}
+    ], val:p=>p.sum },
+  { key:"spread", label:"최대−최소 폭", why:"좁은 구간에 뭉쳐 찍는 습관",
+    rows:[
+      {t:"20 이하",  v:1.131, p:0.0011, n:71,  ok:s=>s<=20},
+      {t:"21~35",   v:0.978, p:0.0945, n:674, ok:s=>s>=21&&s<=35},
+      {t:"36 이상",  v:1.011, p:0.4840, n:494, ok:s=>s>=36}
+    ], val:p=>p.spread },
+  { key:"run", label:"연속번호", why:"이어진 숫자를 피하거나 몰아 찍는 성향",
+    rows:[
+      {t:"포함", v:0.959, p:0.0021, n:641, ok:r=>r>0},
+      {t:"없음", v:1.045, p:0.0014, n:598, ok:r=>r===0}
+    ], val:p=>p.runs },
+  { key:"adj", label:"용지 인접칸 쌍", why:"7칸 격자에서 상하·좌우로 붙은 칸을 함께 칠하는 습관",
+    rows:[
+      {t:"0쌍",     v:1.065, p:0.0003, n:361, ok:a=>a===0},
+      {t:"1쌍",     v:0.971, p:0.0652, n:485, ok:a=>a===1},
+      {t:"2쌍",     v:0.939, p:0.0018, n:300, ok:a=>a===2},
+      {t:"3쌍 이상", v:1.096, p:0.0074, n:93,  ok:a=>a>=3}
+    ], val:p=>p.adj }
+];
+/* 리포트 2부 【5】의 결합 측정치 — 개별 요인을 곱하지 않고 현실적인 범위를 잡아 주는 닻 */
+const ANCHOR = { hot:1.146, cold:0.948, gap:0.21 };
+
+/* ═══════════════ 조합 프로파일 ═══════════════ */
+function profile(nums){
+  const s = [...nums].sort((a,b)=>a-b);
+  const sum = s.reduce((a,b)=>a+b,0);
+  const le31 = s.filter(n=>n<=31).length;
+  const ge32 = 6 - le31;
+  const spread = s[5]-s[0];
+  const odd = s.filter(n=>n%2===1).length;
+  let runs = 0, adj = 0, vadj = 0;
+  for(let i=0;i<5;i++) if(s[i+1]-s[i]===1) runs++;
+  for(let i=0;i<6;i++) for(let j=i+1;j<6;j++){
+    const d = Math.abs(s[i]-s[j]);
+    if(d===SLIPW){ adj++; vadj++; }
+    else if(d===1 && Math.floor((s[i]-1)/SLIPW)===Math.floor((s[j]-1)/SLIPW)) adj++;
+  }
+  const cols = s.map(n=>(n-1)%SLIPW), rws = s.map(n=>Math.floor((n-1)/SLIPW));
+  const area = (Math.max(...cols)-Math.min(...cols)+1) * (Math.max(...rws)-Math.min(...rws)+1);
+  return {sorted:s, sum, le31, ge32, spread, odd, runs, adj, vadj, area};
+}
+/* 추첨기 페이지가 쓰는 "비인기 조합" 채택 조건 */
+const PICKER_RULE = [
+  {t:"합계 165 이상",   ok:p=>p.sum>=165},
+  {t:"32 이상 2개 이상", ok:p=>p.ge32>=2},
+  {t:"폭 33 이상",      ok:p=>p.spread>=33},
+  {t:"인접쌍 1~2개",    ok:p=>p.adj>=1&&p.adj<=2}
+];
+
+function popularity(p){
+  const hits = PREF.map(f=>{
+    const v = f.val(p);
+    const row = f.rows.find(r=>r.ok(v)) || f.rows[0];
+    return {factor:f, row, v};
+  });
+  /* 요인들이 서로 겹치므로(합계·31이하·폭은 같은 습관의 다른 얼굴) 곱하지 않고
+     기하평균으로 완충한다. 리포트 【5】의 결합 측정치(1.146 / 0.948)가 현실적인 상단·하단. */
+  const gm = Math.exp(hits.reduce((a,h)=>a+Math.log(h.row.v),0)/hits.length);
+  const numPref = p.sorted.map(n=>NUMPREF.get(n)).filter(v=>Number.isFinite(v));
+  const nAvg = numPref.length===6 ? numPref.reduce((a,b)=>a+b,0)/6 : null;
+  const index = nAvg!==null ? Math.exp((Math.log(gm)*3 + Math.log(nAvg))/4) : gm;
+  return {hits, gm, nAvg, index, share: 1/index};
+}
+
+/* ═══════════════ 이미지 유틸 ═══════════════ */
+async function toBitmap(src){
+  if(typeof createImageBitmap === "function"){
+    try{ return await createImageBitmap(src, {imageOrientation:"from-image"}); }
+    catch(e){ try{ return await createImageBitmap(src); }catch(e2){} }
+  }
+  const url = src instanceof Blob ? URL.createObjectURL(src) : src;
+  const img = new Image(); img.crossOrigin = "anonymous";
+  await new Promise((res,rej)=>{ img.onload=res; img.onerror=rej; img.src=url; });
+  return img;
+}
+/* ImageBitmap·canvas는 width, <img>는 naturalWidth, <video>는 videoWidth를 쓴다 */
+const dimOf = b => [b.videoWidth || b.naturalWidth || b.width,
+                    b.videoHeight || b.naturalHeight || b.height];
+
+function render(bitmap, maxDim, region){
+  const [W,H] = dimOf(bitmap);
+  const r = region || {x:0, y:0, w:W, h:H};
+  const scale = Math.min(maxDim/Math.max(r.w,r.h), 4);
+  const cw = Math.max(1, Math.round(r.w*scale)), ch = Math.max(1, Math.round(r.h*scale));
+  const cv = document.createElement("canvas"); cv.width = cw; cv.height = ch;
+  const ctx = cv.getContext("2d", {willReadFrequently:true});
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(bitmap, r.x, r.y, r.w, r.h, 0, 0, cw, ch);
+  return cv;
+}
+/* 명암 스트레칭 + 오츠 이진화 */
+function binarize(cv, keepGray){
+  const ctx = cv.getContext("2d", {willReadFrequently:true});
+  const im = ctx.getImageData(0,0,cv.width,cv.height), d = im.data;
+  const hist = new Uint32Array(256);
+  for(let i=0;i<d.length;i+=4){
+    const g = (d[i]*299 + d[i+1]*587 + d[i+2]*114)/1000 | 0;
+    d[i]=d[i+1]=d[i+2]=g; hist[g]++;
+  }
+  const total = d.length/4;
+  /* 명암 스트레칭 구간. 클리핑 비율이 잉크 비율보다 크면 하한이 배경(≈255)까지 밀려
+     구간이 붕괴하고 이미지 전체가 한 색으로 뭉갠다 — 여백 넓은 용지 사진이 정확히 그 경우다.
+     그래서 클리핑은 0.5%로 좁히고, 그래도 구간이 좁으면 스트레칭을 아예 건너뛴다. */
+  const clip = Math.max(1, Math.round(total*0.005));
+  let lo=0, hi=255, acc=0;
+  for(let i=0;i<256;i++){ acc+=hist[i]; if(acc>=clip){ lo=i; break; } }
+  acc=0; for(let i=255;i>=0;i--){ acc+=hist[i]; if(acc>=clip){ hi=i; break; } }
+  if(hi-lo < 16){ lo=0; hi=255; }
+  const span = hi-lo;
+  if(keepGray){
+    for(let i=0;i<d.length;i+=4){
+      const g = Math.max(0, Math.min(255, ((d[i]-lo)/span)*255));
+      d[i]=d[i+1]=d[i+2]=g;
+    }
+    ctx.putImageData(im,0,0); return cv;
+  }
+  /* 오츠 */
+  const h2 = new Uint32Array(256);
+  for(let i=0;i<d.length;i+=4){
+    const g = Math.max(0, Math.min(255, Math.round(((d[i]-lo)/span)*255)));
+    d[i]=d[i+1]=d[i+2]=g; h2[g]++;
+  }
+  let sum=0; for(let i=0;i<256;i++) sum += i*h2[i];
+  let sumB=0, wB=0, best=0, thr=128;
+  for(let t=0;t<256;t++){
+    wB += h2[t]; if(!wB) continue;
+    const wF = total - wB; if(!wF) break;
+    sumB += t*h2[t];
+    const mB = sumB/wB, mF = (sum-sumB)/wF, between = wB*wF*(mB-mF)*(mB-mF);
+    if(between > best){ best = between; thr = t; }
+  }
+  for(let i=0;i<d.length;i+=4){
+    const v = d[i] > thr ? 255 : 0;
+    d[i]=d[i+1]=d[i+2]=v;
+  }
+  ctx.putImageData(im,0,0);
+  return cv;
+}
+
+/* ═══════════════ QR ═══════════════ */
+let detector = null, detectorReady = false, jsqrLoaded = null;
+async function initDetector(){
+  if(detectorReady) return;
+  detectorReady = true;
+  try{
+    if("BarcodeDetector" in window){
+      const fmts = await window.BarcodeDetector.getSupportedFormats();
+      if(fmts.includes("qr_code")) detector = new window.BarcodeDetector({formats:["qr_code"]});
+    }
+  }catch(e){ detector = null; }
+}
+function loadScript(src){
+  return new Promise((res,rej)=>{
+    const s = document.createElement("script");
+    s.src = src; s.onload = res; s.onerror = ()=>rej(new Error("load fail: "+src));
+    document.head.appendChild(s);
+  });
+}
+async function ensureJsQR(){
+  if(window.jsQR) return true;
+  if(!jsqrLoaded) jsqrLoaded = loadScript("https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js")
+    .then(()=>true).catch(()=>false);
+  return jsqrLoaded;
+}
+async function decodeCanvas(cv){
+  if(detector){
+    try{
+      const found = await detector.detect(cv);
+      if(found && found.length){
+        for(const f of found){ if(f.rawValue) return f.rawValue; }
+      }
+    }catch(e){}
+  }
+  if(await ensureJsQR()){
+    const ctx = cv.getContext("2d", {willReadFrequently:true});
+    const im = ctx.getImageData(0,0,cv.width,cv.height);
+    const r = window.jsQR(im.data, im.width, im.height, {inversionAttempts:"attemptBoth"});
+    if(r && r.data) return r.data;
+  }
+  return null;
+}
+
+/* 한 장의 사진에서 QR을 끈질기게 찾는다: 배율 → 이진화 → 타일 분할 */
+async function findQR(bitmap, step){
+  await initDetector();
+  const [W,H] = dimOf(bitmap);
+  const plans = [
+    {t:"원본 1400px",      make:()=>render(bitmap,1400)},
+    {t:"원본 2200px",      make:()=>render(bitmap,2200)},
+    {t:"축소 900px",       make:()=>render(bitmap,900)},
+    {t:"명암 보정 1600px", make:()=>binarize(render(bitmap,1600), true)},
+    {t:"흑백 이진화",      make:()=>binarize(render(bitmap,1600), false)}
+  ];
+  const totalSteps = plans.length + 2;
+  let done = 0;
+  for(const p of plans){
+    step("QR 탐색 · "+p.t, ++done/totalSteps);
+    const hit = await decodeCanvas(p.make());
+    if(hit) return {text:hit, how:p.t};
+  }
+  /* 타일 분할 — 용지 전체를 찍으면 QR이 화면의 일부만 차지한다 */
+  for(const g of [2,3]){
+    step(`QR 탐색 · ${g}×${g} 타일 ${g*g}칸`, ++done/totalSteps);
+    for(let ty=0; ty<g; ty++) for(let tx=0; tx<g; tx++){
+      const ow = W/g*0.25, oh = H/g*0.25;
+      const region = {
+        x: Math.max(0, W/g*tx - ow), y: Math.max(0, H/g*ty - oh),
+        w: Math.min(W, W/g*(tx+1) + ow) - Math.max(0, W/g*tx - ow),
+        h: Math.min(H, H/g*(ty+1) + oh) - Math.max(0, H/g*ty - oh)
+      };
+      const cv = render(bitmap, 1200, region);
+      let hit = await decodeCanvas(cv);
+      if(!hit) hit = await decodeCanvas(binarize(cv, true));
+      if(hit) return {text:hit, how:`${g}×${g} 타일 (${tx+1},${ty+1})`};
+    }
+  }
+  return null;
+}
+
+/* 동행복권 QR 해석 — v=회차4자리 + [구분자 + 번호 12자리] 반복 */
+function parseQR(text){
+  const m = /[?&]v=([0-9a-zA-Z]+)/.exec(text) || /^([0-9]{4}[a-zA-Z][0-9]{12}[0-9a-zA-Z]*)$/.exec(text);
+  if(!m) return null;
+  const v = m[1];
+  if(!/^\d{4}/.test(v)) return null;
+  const round = parseInt(v.slice(0,4), 10);
+  const games = [];
+  for(const g of v.slice(4).matchAll(/([a-zA-Z])(\d{12})/g)){
+    const nums = [];
+    for(let i=0;i<12;i+=2) nums.push(parseInt(g[2].slice(i,i+2), 10));
+    if(nums.length===6 && nums.every(n=>n>=1&&n<=45) && new Set(nums).size===6)
+      games.push({nums:nums.sort((a,b)=>a-b), mark:g[1], src:"QR"});
+  }
+  if(!games.length || round<1) return null;
+  return {round, games};
+}
+
+/* ═══════════════ OCR 폴백 ═══════════════ */
+let tessLoaded = null;
+async function ensureTesseract(){
+  if(window.Tesseract) return true;
+  if(!tessLoaded) tessLoaded = loadScript("https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js")
+    .then(()=>true).catch(()=>false);
+  return tessLoaded;
+}
+async function runOCR(bitmap, step, prog){
+  step("OCR 엔진 내려받는 중 (최초 1회 약 7MB)");
+  if(!await ensureTesseract()){ step("OCR 엔진을 불러오지 못했습니다", "bad"); return null; }
+  let worker;
+  try{
+    worker = await window.Tesseract.createWorker("eng", 1, {
+      workerPath : "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js",
+      corePath   : "https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1/",
+      langPath   : "https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng@1.0.0/4.0.0_best_int",
+      logger     : m => { if(m.status && typeof m.progress === "number") prog(m.progress); }
+    });
+    await worker.setParameters({
+      tessedit_char_whitelist : "0123456789",
+      preserve_interword_spaces : "1"
+    });
+    for(const [label, cv] of [
+      ["이진화 이미지", binarize(render(bitmap,1700), false)],
+      ["명암 보정 이미지", binarize(render(bitmap,1700), true)]
+    ]){
+      step("OCR 인식 · "+label);
+      const res = await worker.recognize(cv);
+      const games = parseOCR(res.data);
+      if(games.length) return games;
+    }
+    return [];
+  }catch(e){
+    step("OCR 실패: "+e.message, "bad");
+    return null;
+  }finally{
+    if(worker) { try{ await worker.terminate(); }catch(e){} }
+  }
+}
+/* 인식된 글자에서 "1~45 사이 서로 다른 6개"가 한 줄에 모이는 곳만 게임으로 채택 */
+function parseOCR(data){
+  const lines = (data.lines && data.lines.length)
+    ? data.lines.map(l=>l.text)
+    : String(data.text||"").split(/\n+/);
+  const games = [];
+  const seen = new Set();
+  for(const raw of lines){
+    const toks = String(raw).match(/\d{1,2}/g);
+    if(!toks) continue;
+    const nums = toks.map(Number).filter(n=>n>=1&&n<=45);
+    for(let i=0; i+6<=nums.length; i+=6){
+      const g = nums.slice(i, i+6);
+      if(new Set(g).size!==6) continue;
+      const key = [...g].sort((a,b)=>a-b).join(",");
+      if(seen.has(key)) continue;
+      seen.add(key);
+      games.push({nums:[...g].sort((a,b)=>a-b), src:"OCR"});
+    }
+  }
+  return games.slice(0,8);
+}
+
+/* ═══════════════ 판독 파이프라인 ═══════════════ */
+let STATE = {round:null, games:[], src:"", img:null};
+
+function logLine(msg, kind){
+  const box = $("#log");
+  const el = document.createElement("div");
+  el.innerHTML = kind==="ok" ? "<b>✓ "+msg+"</b>" : kind==="bad" ? "<i>✕ "+msg+"</i>" : "· "+msg;
+  box.appendChild(el); box.scrollTop = box.scrollHeight;
+}
+function setProg(v){ $("#progBar").style.width = Math.round(v*100)+"%"; }
+
+async function processImage(src, label){
+  stopCamera();
+  /* 새 사진은 새 용지다 — 앞서 읽은 회차가 남아 엉뚱한 회차로 당첨 확인이 되는 것을 막는다 */
+  STATE = {round:null, games:[], src:"", img:null};
+  $("#progWrap").hidden = false; $("#log").innerHTML = ""; setProg(0.04);
+  logLine((label||"이미지")+" 읽는 중");
+  let bitmap;
+  try{ bitmap = await toBitmap(src); }
+  catch(e){ logLine("이미지를 열 수 없습니다", "bad"); return; }
+
+  const [W,H] = dimOf(bitmap);
+  logLine(`해상도 ${W}×${H}`);
+  try{
+    const cv = render(bitmap, 900);
+    $("#prevImg").src = cv.toDataURL("image/jpeg", 0.82);
+    $("#prevWrap").hidden = false;
+  }catch(e){}
+
+  setProg(0.15);
+  const qr = await findQR(bitmap, (m,frac)=>{ logLine(m); setProg(0.15 + (frac||0)*0.47); });
+  if(qr){
+    const parsed = parseQR(qr.text);
+    if(parsed){
+      setProg(1);
+      logLine(`QR 판독 성공 — ${qr.how}`, "ok");
+      logLine(`${parsed.round}회 · ${parsed.games.length}게임`, "ok");
+      STATE = {round:parsed.round, games:parsed.games, src:"QR", img:$("#prevImg").src};
+      showResult();
+      return;
+    }
+    logLine("QR은 읽었지만 로또 용지 형식이 아닙니다: "+qr.text.slice(0,48), "bad");
+  }else{
+    logLine("QR을 찾지 못했습니다 — OCR로 전환", "bad");
+  }
+
+  setProg(0.66);
+  const ocr = await runOCR(bitmap, (m,k)=>logLine(m,k), p=>setProg(0.66 + p*0.3));
+  setProg(1);
+  if(ocr && ocr.length){
+    logLine(`OCR로 ${ocr.length}게임 인식 — 반드시 확인하고 고쳐 주세요`, "ok");
+    const guess = nextRound();
+    logLine(`회차는 읽지 못했습니다 — 다가오는 ${guess}회로 두었으니 필요하면 고쳐 주세요`);
+    STATE = {round: guess, games:ocr, src:"OCR", img:$("#prevImg").src};
+    showResult();
+  }else if(ocr){
+    logLine("숫자를 찾지 못했습니다. 밝은 곳에서 용지를 평평하게 펴고 다시 찍어 보세요.", "bad");
+    logLine("번호를 직접 입력해도 분석은 그대로 됩니다.");
+    STATE = {round: nextRound(), games:[], src:"수동", img:null};
+    showResult();
+  }
+}
+
+/* ═══════════════ 카메라 ═══════════════ */
+let stream = null, camLoop = null, camTrack = null;
+async function startCamera(){
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    $("#fileCam").click(); return;
+  }
+  $("#camWrap").hidden = false;
+  $("#camStat").textContent = "카메라 여는 중…";
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({
+      video:{ facingMode:{ideal:"environment"}, width:{ideal:1920}, height:{ideal:1080} },
+      audio:false
+    });
+  }catch(e){
+    $("#camStat").textContent = "카메라를 쓸 수 없습니다 — 사진 촬영으로 전환합니다";
+    $("#camWrap").hidden = true;
+    $("#fileCam").click();
+    return;
+  }
+  const v = $("#video");
+  v.srcObject = stream; v.setAttribute("playsinline","");
+  try{ await v.play(); }catch(e){}
+  camTrack = stream.getVideoTracks()[0];
+  try{
+    const caps = camTrack.getCapabilities ? camTrack.getCapabilities() : {};
+    if(caps && "torch" in caps) $("#btnTorch").hidden = false;
+  }catch(e){}
+  await initDetector();
+  await ensureJsQR();
+  $("#camStat").textContent = "QR 탐색 중…";
+  let last = 0, frames = 0;
+  const tick = async (ts)=>{
+    if(!stream) return;
+    camLoop = requestAnimationFrame(tick);
+    if(ts - last < 110) return;
+    last = ts;
+    if(v.readyState < 2) return;
+    const cv = render(v, 1000);
+    const text = await decodeCanvas(cv);
+    if(++frames % 18 === 0) $("#camStat").textContent = "QR 탐색 중… ("+frames+"프레임)";
+    if(!text) return;
+    const parsed = parseQR(text);
+    if(!parsed){ $("#camHint").textContent = "로또 용지 QR이 아닙니다 — 계속 탐색합니다"; return; }
+    if(navigator.vibrate) navigator.vibrate(60);
+    stopCamera();
+    $("#progWrap").hidden = false; $("#log").innerHTML = ""; setProg(1);
+    logLine("카메라에서 QR 판독 성공", "ok");
+    logLine(`${parsed.round}회 · ${parsed.games.length}게임`, "ok");
+    try{ $("#prevImg").src = cv.toDataURL("image/jpeg",.8); $("#prevWrap").hidden = false; }catch(e){}
+    STATE = {round:parsed.round, games:parsed.games, src:"QR(카메라)", img:$("#prevImg").src};
+    showResult();
+  };
+  camLoop = requestAnimationFrame(tick);
+}
+function stopCamera(){
+  if(camLoop) cancelAnimationFrame(camLoop), camLoop = null;
+  if(stream){ stream.getTracks().forEach(t=>t.stop()); stream = null; }
+  camTrack = null;
+  $("#camWrap").hidden = true;
+  $("#btnTorch").hidden = true;
+}
+/* 라이브 인식이 안 될 때 현재 프레임을 통째로 정밀 판독 */
+async function shootFrame(){
+  const v = $("#video");
+  if(v.readyState < 2) return;
+  const cv = render(v, 2000);
+  stopCamera();
+  await processImage(cv, "카메라 프레임");
+}
+
+/* ═══════════════ 결과 화면 ═══════════════ */
+function showResult(){
+  $("#secRead").hidden = false;
+  $("#roundIn").value = STATE.round || nextRound();
+  renderGames();
+  updateRoundMeta();
+  runAnalysis();
+  saveCurrent();
+  $("#secRead").scrollIntoView({behavior:"smooth", block:"start"});
+}
+function updateRoundMeta(){
+  const r = +$("#roundIn").value;
+  const d = BYROUND.get(r);
+  $("#roundMeta").innerHTML = d
+    ? `${d.date} 추첨 · 당첨번호 <span class="mono">${d.nums.join(" ")}</span> + <span class="mono">${d.bonus}</span>`
+    : (DATA_OK ? "아직 추첨 전이거나 데이터에 없는 회차입니다 — 당첨 확인은 건너뜁니다" : "");
+}
+function renderGames(){
+  const r = +$("#roundIn").value, d = BYROUND.get(r);
+  const box = $("#games"); box.innerHTML = "";
+  if(!STATE.games.length){
+    box.innerHTML = '<div class="game"><div class="gsrc">판독된 게임이 없습니다. 아래 &ldquo;게임 추가&rdquo;로 직접 넣어 주세요.</div></div>';
+    return;
+  }
+  STATE.games.forEach((g,i)=>{
+    const p = profile(g.nums);
+    const pop = popularity(p);
+    const hit = d ? g.nums.filter(n=>d.nums.includes(n)).length : null;
+    const hasB = d ? g.nums.includes(d.bonus) : false;
+    const rank = d ? rankOf(hit, hasB) : null;
+    const el = document.createElement("div");
+    el.className = "game";
+    const balls = g.nums.map(n=>{
+      const cls = d ? (d.nums.includes(n) ? "ball hit" : "ball miss") : "ball";
+      return `<button class="${cls}" style="background:${ballColor(n)}" data-g="${i}" title="누르면 이 게임을 고칩니다">${n}</button>`;
+    }).join("");
+    const chips = [];
+    if(rank !== null){
+      chips.push(rank ? `<span class="chip win">${rank}등 · ${hit}개 일치${rank===2?" + 보너스":""}</span>`
+                      : `<span class="chip">낙첨 · ${hit}개 일치${hasB?" (보너스 포함)":""}</span>`);
+    }
+    chips.push(`<span class="chip">합계 ${p.sum}</span>`);
+    chips.push(`<span class="chip">31이하 ${p.le31}</span>`);
+    chips.push(`<span class="chip">폭 ${p.spread}</span>`);
+    chips.push(`<span class="chip">인접 ${p.adj}쌍</span>`);
+    chips.push(pop.index >= 1.02 ? `<span class="chip hot">인기 ${pop.index.toFixed(3)}</span>`
+             : pop.index <= 0.98 ? `<span class="chip cold">비인기 ${pop.index.toFixed(3)}</span>`
+             : `<span class="chip">인기도 ${pop.index.toFixed(3)}</span>`);
+    el.innerHTML = `<div class="ghead"><span class="gname">${LETTERS[i]||("#"+(i+1))} 게임</span>
+      <span class="gsrc">${g.src||"수동"}</span></div>
+      <div class="balls">${balls}</div>
+      <div class="chips">${chips.join("")}</div>
+      <div class="gact"><button class="ghost sm" data-edit="${i}" type="button">고치기</button></div>`;
+    box.appendChild(el);
+  });
+  box.querySelectorAll("[data-g]").forEach(b=>b.onclick = ()=>openEditor(+b.dataset.g));
+  box.querySelectorAll("[data-edit]").forEach(b=>b.onclick = ()=>openEditor(+b.dataset.edit));
+}
+function rankOf(match, hasBonus){
+  if(match===6) return 1;
+  if(match===5 && hasBonus) return 2;
+  if(match===5) return 3;
+  if(match===4) return 4;
+  if(match===3) return 5;
+  return 0;
+}
+
+/* ═══════════════ 번호 편집 ═══════════════ */
+let editIdx = -1, editSel = [];
+function openEditor(i){
+  editIdx = i;
+  editSel = i < STATE.games.length ? [...STATE.games[i].nums] : [];
+  $("#dlgTitle").textContent = (LETTERS[i]||("#"+(i+1)))+" 게임 번호";
+  const grid = $("#dlgGrid"); grid.innerHTML = "";
+  for(let n=1;n<=45;n++){
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = n;
+    b.className = editSel.includes(n) ? "sel" : "";
+    b.onclick = ()=>{
+      const at = editSel.indexOf(n);
+      if(at>=0) editSel.splice(at,1);
+      else { if(editSel.length>=6) return; editSel.push(n); }
+      b.className = editSel.includes(n) ? "sel" : "";
+      syncDlg();
+    };
+    grid.appendChild(b);
+  }
+  $("#dlgDel").hidden = i >= STATE.games.length;
+  syncDlg();
+  const dlg = $("#dlg");
+  if(dlg.showModal) dlg.showModal(); else dlg.setAttribute("open","");   // 구형 Safari
+}
+function syncDlg(){
+  $("#dlgSub").textContent = `${editSel.length}/6개 선택 — ` +
+    (editSel.length===6 ? "["+[...editSel].sort((a,b)=>a-b).join(", ")+"]" : "6개를 채워 주세요.");
+  $("#dlgOk").disabled = editSel.length !== 6;
+}
+
+/* ═══════════════ 분석 ═══════════════ */
+function runAnalysis(){
+  const r = +$("#roundIn").value, d = BYROUND.get(r);
+  const gs = STATE.games;
+  if(!gs.length){
+    ["#secWin","#secPop","#secHist2"].forEach(s=>$(s).hidden = true);
+    return;
+  }
+  renderWin(d, r, gs);
+  renderPop(gs);
+  renderHist(gs);
+}
+
+function renderWin(d, r, gs){
+  const sec = $("#secWin");
+  if(!d){ sec.hidden = true; return; }
+  sec.hidden = false;
+  $("#winRound").textContent = `${r}회 · ${d.date}`;
+  const RANKNAME = ["낙첨","1등","2등","3등","4등","5등"];
+  let total = 0, best = 0;
+  const rows = gs.map((g,i)=>{
+    const hit = g.nums.filter(n=>d.nums.includes(n)).length;
+    const hasB = g.nums.includes(d.bonus);
+    const rk = rankOf(hit, hasB);
+    const prize = rk ? d.ranks[rk-1].p : 0;
+    total += prize;
+    if(rk && (!best || rk < best)) best = rk;
+    return `<tr><td><b>${LETTERS[i]||("#"+(i+1))}</b></td>
+      <td class="n">${g.nums.map(n=>d.nums.includes(n)?`<b>${String(n).padStart(2,"0")}</b>`:String(n).padStart(2,"0")).join(" ")}</td>
+      <td class="n">${hit}개${hasB?" +보너스":""}</td>
+      <td class="n">${RANKNAME[rk]}</td>
+      <td class="n">${prize?won(prize):"—"}</td></tr>`;
+  }).join("");
+  const cost = gs.length*1000;
+  sec.querySelector("#winBody").innerHTML = `
+    <div class="stats">
+      <div class="st"><div class="k">당첨번호</div>
+        <div class="v" style="font-size:19px">${d.nums.join(" ")}</div>
+        <div class="d">보너스 ${d.bonus}</div></div>
+      <div class="st"><div class="k">최고 등수</div>
+        <div class="v">${best?best+"등":"낙첨"}</div>
+        <div class="d">${gs.length}게임 중</div></div>
+      <div class="st"><div class="k">당첨금 합계</div>
+        <div class="v">${total?won(total):"0원"}</div>
+        <div class="d">구입비 ${cost.toLocaleString()}원 · 수지 ${total-cost>=0?"+":""}${(total-cost).toLocaleString()}원</div></div>
+      <div class="st"><div class="k">이 회차 1등</div>
+        <div class="v">${d.ranks[0].w}명</div>
+        <div class="d">1인당 ${d.ranks[0].w?won(d.ranks[0].p):"—"}</div></div>
+    </div>
+    <div class="scroller"><table style="margin-top:18px">
+      <thead><tr><th>게임</th><th>번호 (굵은 글씨 = 일치)</th><th>일치</th><th>등수</th><th>당첨금</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>
+    <div class="note">동행복권 공식 당첨 확인이 아닙니다. 실제 수령은 반드시 용지 원본으로 확인하세요.</div>`;
+}
+
+function renderPop(gs){
+  const sec = $("#secPop"); sec.hidden = false;
+  const cards = gs.map((g,i)=>{
+    const p = profile(g.nums), pop = popularity(p);
+    const rows = pop.hits.map(h=>`
+      <tr><td>${h.factor.label}</td>
+        <td class="n">${h.row.t}</td>
+        <td class="n" style="color:${h.row.v>1.02?"var(--warm)":h.row.v<0.98?"var(--cool)":"inherit"}">${h.row.v.toFixed(3)}</td>
+        <td class="n">${h.row.p<1e-3?h.row.p.toExponential(1):h.row.p.toFixed(4)}</td>
+        <td style="font-size:12.5px;color:var(--ink-3)">${h.factor.why}</td></tr>`).join("");
+    const rule = PICKER_RULE.map(c=>`<span class="chip ${c.ok(p)?"cold":""}">${c.ok(p)?"✓":"✕"} ${c.t}</span>`).join("");
+    const verdict = pop.index >= 1.03 ? ["많이 고르는 조합", "var(--warm)"]
+                  : pop.index <= 0.97 ? ["적게 고르는 조합", "var(--cool)"]
+                  : ["평균에 가까운 조합", "var(--ink-2)"];
+    return `<div class="panel" style="margin-bottom:2px">
+      <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+        <span class="gname">${LETTERS[i]||("#"+(i+1))} 게임</span>
+        <span class="mono" style="font-size:13px;color:var(--ink-2)">${g.nums.map(n=>String(n).padStart(2,"0")).join(" ")}</span>
+        <span style="flex:1 1 auto"></span>
+        <span style="color:${verdict[1]};font-weight:500">${verdict[0]}</span>
+      </div>
+      <div class="stats" style="margin-top:14px">
+        <div class="st"><div class="k">종합 인기도</div><div class="v">${pop.index.toFixed(3)}</div>
+          <div class="d">1.000 = 평균</div></div>
+        <div class="st"><div class="k">1인당 당첨금 배수</div><div class="v">${pop.share.toFixed(3)}×</div>
+          <div class="d">1등 시 평균 대비 ${((pop.share-1)*100>=0?"+":"")}${((pop.share-1)*100).toFixed(1)}%</div></div>
+        <div class="st"><div class="k">번호별 선호도 평균</div><div class="v">${pop.nAvg?pop.nAvg.toFixed(3):"—"}</div>
+          <div class="d">6개 번호 각각의 선호도</div></div>
+        <div class="st"><div class="k">홀 : 짝</div><div class="v" style="font-size:21px">${p.odd} : ${6-p.odd}</div>
+          <div class="d">용지 점유면적 ${p.area}칸</div></div>
+      </div>
+      <div class="scroller"><table style="margin-top:16px">
+        <thead><tr><th>요인</th><th>이 조합</th><th>선호도</th><th>p</th><th>측정 내용</th></tr></thead>
+        <tbody>${rows}</tbody></table></div>
+      <div class="chips" style="margin-top:14px">${rule}</div>
+      <div class="note">위 네 조건은 <a href="../picker/">비인기 조합 추첨기</a>가 쓰는 채택 기준입니다.</div>
+    </div>`;
+  }).join("");
+  $("#popBody").innerHTML = cards + `
+    <div class="warn">
+      <b>이 숫자가 뜻하는 것.</b> 선호도 1.10은 &ldquo;그 조합이 당첨될 확률이 10% 높다&rdquo;가 아니라
+      <b>같은 번호를 고른 사람이 10% 많다</b>는 뜻입니다. 추첨 자체는 10종 검정을 모두 통과한 무작위였습니다.
+      바뀌는 건 확률이 아니라, 당첨됐을 때 <b>몇 명과 나누느냐</b>입니다.
+    </div>
+    <div class="note">
+      종합 인기도는 다섯 요인(합계·31이하·폭·연속·인접쌍)이 서로 겹치기 때문에 곱이 아니라 기하평균으로 합치고,
+      여기에 번호별 선호도를 3:1로 섞은 값입니다. 리포트가 직접 결합 측정한 두 극단이
+      <span class="mono">${ANCHOR.hot}</span>(폭20이하 &amp; 31이하 5개 이상)와
+      <span class="mono">${ANCHOR.cold}</span>(폭36이상 &amp; 31이하 3개 이하)이고,
+      두 유형의 1인당 기대 당첨금 차이가 약 ${Math.round(ANCHOR.gap*100)}%입니다.
+    </div>`;
+}
+
+function renderHist(gs){
+  const sec = $("#secHist2");
+  if(!DATA_OK || !DRAWS.length){ sec.hidden = true; return; }
+  sec.hidden = false;
+  const rows = gs.map((g,i)=>{
+    const set = new Set(g.nums);
+    let best = 0, bestRound = null, c3 = 0, c4 = 0, c5 = 0, exact = 0;
+    for(const d of DRAWS){
+      let m = 0;
+      for(const n of d.nums) if(set.has(n)) m++;
+      if(m>=3) c3++;
+      if(m>=4) c4++;
+      if(m>=5) c5++;
+      if(m===6){ exact++; }
+      if(m > best){ best = m; bestRound = d; }
+    }
+    return `<tr><td><b>${LETTERS[i]||("#"+(i+1))}</b></td>
+      <td class="n">${g.nums.map(n=>String(n).padStart(2,"0")).join(" ")}</td>
+      <td class="n">${best}개 <span style="color:var(--ink-3)">(${bestRound.round}회)</span></td>
+      <td class="n">${c3}회</td><td class="n">${c4}회</td><td class="n">${c5}회</td>
+      <td class="n">${exact?"<b>"+exact+"회</b>":"없음"}</td></tr>`;
+  }).join("");
+  $("#histBody").innerHTML = `
+    <div class="scroller"><table>
+      <thead><tr><th>게임</th><th>번호</th><th>역대 최고 일치</th>
+        <th>3개+</th><th>4개+</th><th>5개+</th><th>6개 일치</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>
+    <div class="note">1~${latestRound()}회차 전 회차와 대조한 결과입니다. 3개 이상 일치는 평균적으로 약 ${(DRAWS.length*P3PLUS).toFixed(0)}회 나오는 것이 정상이며,
+      이 수치가 크거나 작다고 해서 다음 회차에 대한 정보가 되지는 않습니다 &mdash; 회차 간 독립성 검정을 이미 통과했습니다.</div>`;
+}
+
+/* ═══════════════ 저장 ═══════════════ */
+const SKEY = "lotto645.scans";
+const SAVE = {
+  all(){ try{ return JSON.parse(localStorage.getItem(SKEY)||"[]"); }catch(e){ return []; } },
+  put(rec){
+    const a = this.all().filter(x=>!(x.round===rec.round && x.key===rec.key));
+    a.unshift(rec);
+    try{ localStorage.setItem(SKEY, JSON.stringify(a.slice(0,20))); }catch(e){}
+    renderSaved();
+  },
+  clear(){ try{ localStorage.removeItem(SKEY); }catch(e){} renderSaved(); }
+};
+function saveCurrent(){
+  if(!STATE.games.length) return;
+  SAVE.put({
+    round: +$("#roundIn").value,
+    key: STATE.games.map(g=>g.nums.join("-")).join("|"),
+    games: STATE.games.map(g=>g.nums),
+    src: STATE.src,
+    at: new Date().toISOString()
+  });
+}
+function renderSaved(){
+  const rows = SAVE.all();
+  const box = $("#savedBox");
+  if(!rows.length){ box.textContent = "아직 판독한 용지가 없습니다."; return; }
+  box.innerHTML = rows.map(v=>{
+    const d = BYROUND.get(v.round);
+    let tag = "";
+    if(d){
+      let best = 0;
+      v.games.forEach(g=>{
+        const rk = rankOf(g.filter(n=>d.nums.includes(n)).length, g.includes(d.bonus));
+        if(rk && (!best || rk<best)) best = rk;
+      });
+      tag = best ? `<span class="chip win" style="margin-left:6px">${best}등</span>`
+                 : `<span class="chip" style="margin-left:6px">낙첨</span>`;
+    }
+    return `<div class="row"><b>${v.round}회</b>${tag}
+      <span style="color:var(--ink-3);font-size:12px;margin-left:6px">${v.src} · ${v.at.slice(0,10)}</span><br>
+      <span class="mono" style="font-size:12.5px;color:var(--ink-2)">${
+        v.games.map((g,i)=>(LETTERS[i]||"#")+" "+g.map(n=>String(n).padStart(2,"0")).join(" ")).join("　")
+      }</span></div>`;
+  }).join("") + `<div style="margin-top:12px"><button class="ghost sm" id="btnClearSaved" type="button">기록 지우기</button></div>`;
+  const b = $("#btnClearSaved"); if(b) b.onclick = ()=>SAVE.clear();
+}
+
+/* ═══════════════ 이벤트 배선 ═══════════════ */
+const drop = $("#drop"), fileIn = $("#fileIn");
+drop.onclick = ()=>fileIn.click();
+fileIn.onchange = e => { const f = e.target.files[0]; if(f) processImage(f, f.name); fileIn.value = ""; };
+$("#fileCam").onchange = e => { const f = e.target.files[0]; if(f) processImage(f, "촬영한 사진"); e.target.value = ""; };
+
+["dragenter","dragover"].forEach(ev=>drop.addEventListener(ev, e=>{
+  e.preventDefault(); drop.classList.add("hot");
+}));
+["dragleave","drop"].forEach(ev=>drop.addEventListener(ev, e=>{
+  e.preventDefault(); drop.classList.remove("hot");
+}));
+drop.addEventListener("drop", e=>{
+  const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+  if(f && f.type.startsWith("image/")) processImage(f, f.name);
+});
+window.addEventListener("paste", e=>{
+  const items = e.clipboardData && e.clipboardData.items;
+  if(!items) return;
+  for(const it of items){
+    if(it.type.startsWith("image/")){
+      const f = it.getAsFile();
+      if(f){ e.preventDefault(); processImage(f, "붙여넣은 이미지"); }
+      return;
+    }
+  }
+});
+
+$("#btnCam").onclick = startCamera;
+$("#btnCamOff").onclick = stopCamera;
+$("#btnShot").onclick = shootFrame;
+$("#btnTorch").onclick = async ()=>{
+  if(!camTrack) return;
+  try{
+    const on = !(camTrack.getSettings && camTrack.getSettings().torch);
+    await camTrack.applyConstraints({advanced:[{torch:on}]});
+  }catch(e){}
+};
+$("#btnManual").onclick = ()=>{
+  STATE = {round: nextRound(), games:[], src:"수동", img:null};
+  $("#secRead").hidden = false;
+  $("#roundIn").value = STATE.round;
+  renderGames(); updateRoundMeta();
+  openEditor(0);
+};
+$("#btnAddGame").onclick = ()=>openEditor(STATE.games.length);
+$("#btnReset").onclick = ()=>{
+  stopCamera();
+  STATE = {round:null, games:[], src:"", img:null};
+  ["#secRead","#secWin","#secPop","#secHist2","#progWrap","#prevWrap"].forEach(s=>$(s).hidden = true);
+  $("#log").innerHTML = ""; setProg(0);
+  window.scrollTo({top:0, behavior:"smooth"});
+};
+$("#btnAnalyze").onclick = ()=>{
+  runAnalysis();
+  saveCurrent();
+  const target = $("#secWin").hidden ? $("#secPop") : $("#secWin");
+  if(!target.hidden) target.scrollIntoView({behavior:"smooth"});
+};
+$("#roundIn").oninput = ()=>{ updateRoundMeta(); renderGames(); runAnalysis(); };
+$("#btnLatest").onclick = ()=>{ $("#roundIn").value = latestRound(); $("#roundIn").oninput(); };
+
+$("#dlgCancel").onclick = ()=>$("#dlg").close();
+$("#dlgOk").onclick = ()=>{
+  if(editSel.length !== 6) return;
+  const nums = [...editSel].sort((a,b)=>a-b);
+  if(editIdx < STATE.games.length) STATE.games[editIdx] = {...STATE.games[editIdx], nums, src:"수정"};
+  else STATE.games.push({nums, src:"수동"});
+  $("#dlg").close();
+  renderGames(); runAnalysis();
+};
+$("#dlgDel").onclick = ()=>{
+  if(editIdx < STATE.games.length) STATE.games.splice(editIdx,1);
+  $("#dlg").close();
+  renderGames(); runAnalysis();
+};
+
+/* 모바일이면 카메라를, 데스크톱이면 파일 업로드를 앞세운다.
+   창 크기가 바뀌면 다시 불려도 되도록 양방향 모두 되돌린다.
+   innerWidth는 탭이 숨겨진 상태에서 0으로 보고될 수 있으므로 0은 "모름"으로 취급한다. */
+const COPY = {
+  mobile:{ ic:"🖼", t:"갤러리에서 고르기", d:"이미 찍어 둔 용지 사진을 고릅니다.",
+           cam:"📷 카메라로 바로 판독",
+           note:"용지를 비추기만 하면 QR을 자동으로 잡습니다. 촬영 버튼을 누를 필요가 없습니다." },
+  desktop:{ ic:"📄", t:"사진 올리기", d:"클릭해서 파일을 고르거나, 이 영역으로 끌어다 놓으세요.",
+           cam:"📷 카메라로 찍기",
+           note:"카메라를 켜면 용지를 비추는 동안 QR을 계속 탐색합니다. 찍을 필요 없이 인식되면 바로 멈춥니다." }
+};
+let mobileMode = null;
+function tuneForDevice(){
+  const coarse = window.matchMedia("(pointer:coarse)").matches;
+  const w = window.innerWidth || document.documentElement.clientWidth || 0;
+  const m = coarse || (w > 0 && w < 760);
+  if(m === mobileMode) return;
+  mobileMode = m;
+  const c = m ? COPY.mobile : COPY.desktop;
+  $("#dropIc").textContent = c.ic;
+  $("#dropT").textContent  = c.t;
+  $("#dropD").textContent  = c.d;
+  $("#btnCam").textContent = c.cam;
+  $("#camNote").textContent = c.note;
+  $("#dropK").hidden = m;                       // 붙여넣기 안내는 데스크톱에서만
+  $(".intake").classList.toggle("mobile", m);   // 순서는 CSS order로 바꾼다
+}
+window.addEventListener("resize", tuneForDevice);
+
+/* ═══════════════ 시작 ═══════════════ */
+(async ()=>{
+  tuneForDevice();
+  await loadData();
+  renderSaved();
+  initDetector();
+  $("#roundIn").value = nextRound();
+})();
+</script>
+</body>
+</html>

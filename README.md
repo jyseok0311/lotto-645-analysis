@@ -8,6 +8,7 @@
 |---|---|
 | [전수 분석 리포트](https://jyseok0311.github.io/lotto-645-analysis/report/) | 무작위성 검정 10종 · 구매자 선호도 · 조작 의혹 검정 · 무더기 1등의 원인 · 검출력 분석 |
 | [비인기 조합 추첨기](https://jyseok0311.github.io/lotto-645-analysis/picker/) | 비너스 추첨기 사양 기반 3D 시뮬레이션으로 매주 5게임 추천 |
+| [용지 스마트 판독](https://jyseok0311.github.io/lotto-645-analysis/scan/) | 용지 사진·카메라 → QR 판독(실패 시 OCR) → 당첨 확인 + 조합 인기도 진단 |
 
 ---
 

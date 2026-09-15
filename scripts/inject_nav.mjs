@@ -1,4 +1,4 @@
-// 세 페이지(index / report / picker)에 공통 내비게이션을 주입한다.
+// 네 페이지(index / report / picker / scan)에 공통 내비게이션을 주입한다.
 // 멱등(idempotent): 이미 들어 있으면 기존 것을 새 마크업으로 교체한다.
 //   실행:  node scripts/inject_nav.mjs
 import fs from 'node:fs';
@@ -14,11 +14,13 @@ const PAGES = [
   { file: 'index.html',        base: './',   key: 'home' },
   { file: 'report/index.html', base: '../',  key: 'report' },
   { file: 'picker/index.html', base: '../',  key: 'picker' },
+  { file: 'scan/index.html',   base: '../',  key: 'scan'   },
 ];
 const ITEMS = [
   { key: 'home',   label: '개요',      href: b => b },
   { key: 'report', label: '분석 리포트', href: b => b + 'report/' },
   { key: 'picker', label: '추첨기',     href: b => b + 'picker/' },
+  { key: 'scan',   label: '용지 판독',   href: b => b + 'scan/' },
 ];
 
 const navHTML = (base, cur) => `<nav class="sitenav" aria-label="사이트 메뉴">
